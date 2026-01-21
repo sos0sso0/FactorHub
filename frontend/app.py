@@ -1259,17 +1259,59 @@ def main():
                     if source_filter:
                         display_df = display_df[display_df["来源"].isin(source_filter)]
 
-                    st.dataframe(
-                        display_df[["name", "category", "来源", "description"]],
-                        column_config={
+                    # 显示选项
+                    show_formula = st.checkbox("在表格中显示公式", value=False, key="show_formula_in_table")
+
+                    # 因子列表数据表格
+                    if show_formula:
+                        columns_to_show = ["name", "category", "来源", "code", "description"]
+                        column_config = {
+                            "name": st.column_config.TextColumn("因子名称", width="medium"),
+                            "category": st.column_config.TextColumn("分类", width="small"),
+                            "来源": st.column_config.TextColumn("来源", width="small"),
+                            "code": st.column_config.TextColumn("公式", width="large"),
+                            "description": st.column_config.TextColumn("说明", width="large"),
+                        }
+                    else:
+                        columns_to_show = ["name", "category", "来源", "description"]
+                        column_config = {
                             "name": st.column_config.TextColumn("因子名称", width="medium"),
                             "category": st.column_config.TextColumn("分类", width="small"),
                             "来源": st.column_config.TextColumn("来源", width="small"),
                             "description": st.column_config.TextColumn("说明", width="large"),
-                        },
+                        }
+
+                    st.dataframe(
+                        display_df[columns_to_show],
+                        column_config=column_config,
                         hide_index=True,
                         use_container_width=True,
                     )
+
+                    # 因子公式查看器
+                    with st.expander("📝 查看因子公式", expanded=False):
+                        selected_factor_name = st.selectbox(
+                            "选择因子查看公式",
+                            options=display_df["name"].tolist(),
+                            key="view_formula_select",
+                        )
+
+                        if selected_factor_name:
+                            factor_info = display_df[display_df["name"] == selected_factor_name].iloc[0]
+                            st.markdown(f"**因子名称**: {factor_info['name']}")
+                            st.markdown(f"**分类**: {factor_info['category']}")
+                            st.markdown(f"**说明**: {factor_info['description']}")
+
+                            # 显示公式代码
+                            if "code" in factor_info and pd.notna(factor_info["code"]):
+                                st.markdown("**计算公式**:")
+                                st.code(
+                                    factor_info["code"],
+                                    language="python",
+                                    line_numbers=False,
+                                )
+                            else:
+                                st.warning("该因子没有公式代码")
 
                     # 删除因子（仅限用户自定义）
                     with st.expander("删除因子", expanded=False):

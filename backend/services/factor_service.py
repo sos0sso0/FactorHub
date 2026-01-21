@@ -375,8 +375,8 @@ class FactorService:
                 },
                 {
                     "name": "regime_volatility",
-                    "code": "(np.log(close / close.shift(1)).rolling(window=10).std() > np.log(close / close.shift(1)).rolling(window=10).std().quantile(0.7)).astype(int)",
-                    "description": "高波动regime标记",
+                    "code": "(np.log(close / close.shift(1)).rolling(window=10).std() > np.log(close / close.shift(1)).rolling(window=10).std().expanding().quantile(0.7)).astype(int)",
+                    "description": "高波动regime标记（使用expanding避免未来函数）",
                 },
                 {
                     "name": "regime_trend",

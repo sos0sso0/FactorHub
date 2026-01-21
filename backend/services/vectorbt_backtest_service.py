@@ -381,12 +381,12 @@ class VectorBTBacktestService:
             return self._empty_metrics()
 
         # 基础指标
-        total_return = returns_clean.sum()  # vectorbt的收益是简单求和
+        total_return = (1 + returns_clean).prod() - 1  # 复利计算累计收益
         n_days = len(returns_clean)
 
-        # 年化收益率
+        # 年化收益率（使用复利公式，与 backtest_service.py 保持一致）
         if n_days > 0:
-            annual_return = returns_clean.mean() * annual_trading_days
+            annual_return = (1 + total_return) ** (annual_trading_days / n_days) - 1
         else:
             annual_return = 0.0
 
@@ -409,8 +409,8 @@ class VectorBTBacktestService:
             drawdown = (peak - pd.Series(equity_array)) / peak
             max_drawdown = drawdown.max()
         else:
-            # 回退方案：从收益率序列计算净值曲线
-            equity = self.initial_capital + returns_clean.cumsum()
+            # 回退方案：从收益率序列计算净值曲线（使用复利）
+            equity = self.initial_capital * (1 + returns_clean).cumprod()
             peak = equity.cummax()
             drawdown = (peak - equity) / peak
             max_drawdown = drawdown.max()
@@ -458,7 +458,7 @@ class VectorBTBacktestService:
             "cvar_95": cvar_95,
         }
 
-    def _calculate_volatility(self, returns_clean: pd.Series | pd.DataFrame, stats: pd.Series) -> float:
+    def _calculate_volatility(self, returns_clean: pd.Series | pd.DataFrame, stats: pd.Series, annual_trading_days: int = 252) -> float:
         """Calculate volatility from stats or compute manually"""
         if 'Volatility (Ann.) [%]' in stats:
             return stats.get('Volatility (Ann.) [%]', 0) / 100.0
@@ -466,9 +466,9 @@ class VectorBTBacktestService:
         # For multi-asset case, calculate portfolio returns volatility
         if isinstance(returns_clean, pd.DataFrame):
             portfolio_returns = returns_clean.mean(axis=1)
-            return portfolio_returns.std() * np.sqrt(252) if len(portfolio_returns) > 0 else 0.0
+            return portfolio_returns.std() * np.sqrt(annual_trading_days) if len(portfolio_returns) > 0 else 0.0
 
-        return returns_clean.std() * np.sqrt(252) if len(returns_clean) > 0 else 0.0
+        return returns_clean.std() * np.sqrt(annual_trading_days) if len(returns_clean) > 0 else 0.0
 
     def _calculate_var_cvar(self, returns_clean: pd.Series | pd.DataFrame) -> tuple[float, float]:
         """Calculate VaR and CVaR from returns"""
