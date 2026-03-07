@@ -7,12 +7,17 @@ import talib
 from typing import Dict, List, Optional, Any
 from pathlib import Path
 import yaml
+import logging
 
 from backend.core.database import get_db_session
 from backend.core.settings import settings
 from backend.models.factor import FactorModel
 from backend.repositories.factor_repository import FactorRepository
 from backend.services.data_service import data_service
+from backend.services.factor_version_service import factor_version_service
+
+# 配置日志
+logger = logging.getLogger(__name__)
 
 
 class FactorCalculator:
@@ -67,12 +72,9 @@ class FactorCalculator:
             local_vars = {}
 
             try:
-                # 打印调试信息
-                print(f"[DEBUG calculate] is_function: {is_function}")
-                print(f"[DEBUG calculate] code length: {len(factor_code)}")
-                print(f"[DEBUG calculate] first line: {repr(factor_code.split(chr(10))[0])}")
-
                 # 执行函数定义
+                # 注意：此处在受限环境中执行用户代码
+                # global_vars已经限制了可用的内置函数
                 exec(factor_code, global_vars, local_vars)
 
                 # 调用函数（函数可能在 global_vars 或 local_vars 中）
@@ -91,10 +93,15 @@ class FactorCalculator:
                 return result
             except Exception as e:
                 import traceback
-                print(f"[DEBUG calculate] Error in exec:")
-                print(f"[DEBUG calculate] factor_code:\n{repr(factor_code)}")
-                traceback.print_exc()
-                raise ValueError(f"因子计算失败: {e}")
+                # 记录详细错误信息用于调试
+                error_msg = f"因子计算失败: {str(e)}\n"
+                error_msg += f"因子代码类型: {'函数' if is_function else '表达式'}\n"
+                error_msg += f"代码长度: {len(factor_code)} 字符"
+                # 在开发环境可以添加traceback，生产环境使用日志
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(error_msg, exc_info=True)
+                raise ValueError(error_msg)
         else:
             # 表达式形式：使用 eval 执行（保持向后兼容）
             local_vars = {
@@ -109,13 +116,26 @@ class FactorCalculator:
             }
 
             try:
+                # 安全措施：
+                # 1. 限制__builtins__为空字典
+                # 2. 只提供预定义的local_vars
+                # 3. 使用ast验证代码语法
+                import ast
+                try:
+                    ast.parse(factor_code, mode='eval')
+                except SyntaxError:
+                    raise ValueError(f"因子表达式语法错误: {factor_code}")
+
                 result = eval(factor_code, {"__builtins__": {}}, local_vars)
                 if isinstance(result, pd.DataFrame):
                     # 如果返回DataFrame，取第一列
                     result = result.iloc[:, 0]
                 return result
             except Exception as e:
-                raise ValueError(f"因子计算失败: {e}")
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"因子表达式计算失败: {factor_code}", exc_info=True)
+                raise ValueError(f"因子表达式计算失败: {e}")
 
     def calculate_multiple(
         self, df: pd.DataFrame, factors: List[FactorModel]
@@ -137,7 +157,7 @@ class FactorCalculator:
                 factor_values = self.calculate(df, factor.code)
                 result[factor.name] = factor_values
             except Exception as e:
-                print(f"Warning: 计算因子 {factor.name} 失败: {e}")
+                logger.warning(f"计算因子 {factor.name} 失败: {e}")
                 result[factor.name] = np.nan
 
         return result
@@ -431,9 +451,23 @@ class FactorService:
         return result.to_dict()
 
     def update_factor(
-        self, factor_id: int, name: str = None, code: str = None, description: str = None
+        self, factor_id: int, name: str = None, code: str = None, description: str = None,
+        create_version: bool = True, change_reason: str = ""
     ) -> Dict:
-        """更新因子"""
+        """
+        更新因子
+
+        Args:
+            factor_id: 因子ID
+            name: 新名称（可选）
+            code: 新代码（可选）
+            description: 新描述（可选）
+            create_version: 是否创建版本快照（默认True）
+            change_reason: 变更原因（可选）
+
+        Returns:
+            更新后的因子信息
+        """
         db = get_db_session()
         repo = FactorRepository(db)
         factor = repo.get_by_id(factor_id)
@@ -446,6 +480,20 @@ class FactorService:
             db.close()
             raise ValueError("预置因子的名称和代码不能修改")
 
+        # 如果需要创建版本且代码有变化，先保存版本
+        if create_version and code and code != factor.code:
+            try:
+                factor_version_service.create_version(
+                    factor_id=factor_id,
+                    code=factor.code,
+                    description=factor.description,
+                    change_reason=change_reason or "更新前自动保存",
+                    auto_increment=True,
+                )
+            except Exception as e:
+                logger.warning(f"创建版本快照失败: {e}")
+
+        # 更新因子
         if name:
             factor.name = name
         if code:
@@ -456,6 +504,14 @@ class FactorService:
         result = repo.update(factor)
         db.close()
         return result.to_dict()
+
+    def get_factor_versions(self, factor_id: int) -> List[Dict]:
+        """获取因子的版本历史"""
+        return factor_version_service.get_version_history(factor_id)
+
+    def rollback_factor_version(self, factor_id: int, version_code: str) -> bool:
+        """回滚因子到指定版本"""
+        return factor_version_service.rollback_to_version(factor_id, version_code)
 
     def delete_factor(self, factor_id: int) -> bool:
         """删除因子"""
@@ -471,11 +527,8 @@ class FactorService:
 
     def validate_factor_code(self, code: str) -> tuple[bool, str]:
         """验证因子代码"""
-        # 打印调试信息
-        print(f"[DEBUG] Validating factor code...")
-        print(f"[DEBUG] Code length: {len(code)}")
-        print(f"[DEBUG] Code starts with 'def': {code.strip().startswith('def ')}")
-        print(f"[DEBUG] First 200 chars: {repr(code[:200])}")
+        # 使用logging记录调试信息（可通过配置关闭）
+        logger.debug(f"Validating factor code, length: {len(code)}")
 
         # 创建测试数据
         test_df = pd.DataFrame({
@@ -493,9 +546,7 @@ class FactorService:
                 return False, "代码未返回任何结果"
             return True, "验证通过"
         except Exception as e:
-            import traceback
-            print(f"[DEBUG] Error traceback:")
-            traceback.print_exc()
+            logger.debug(f"Factor code validation failed: {str(e)}", exc_info=True)
             return False, f"验证失败: {str(e)}"
 
     def calculate_factors_for_stock(
@@ -567,7 +618,7 @@ class FactorService:
                 )
                 results[code] = result
             except Exception as e:
-                print(f"Warning: 为股票 {code} 计算因子失败: {e}")
+                logger.warning(f"为股票 {code} 计算因子失败: {e}")
         return results
 
 

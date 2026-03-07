@@ -7,8 +7,15 @@ from typing import Dict, List, Optional, Tuple
 from scipy import stats
 from sklearn.preprocessing import PolynomialFeatures
 import warnings
+import logging
 
-warnings.filterwarnings("ignore")
+# 配置日志
+logger = logging.getLogger(__name__)
+
+# 只忽略特定类型的警告
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore", message=".*invalid value.*")
 
 
 class StatisticsService:

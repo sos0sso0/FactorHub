@@ -1,13 +1,30 @@
 """
 回测服务核心引擎
+
+集成了新的策略系统，支持预置策略和策略对比
 """
 import pandas as pd
 import numpy as np
 from typing import Dict, List, Optional, Tuple
 from datetime import datetime
 import warnings
+import logging
 
-warnings.filterwarnings("ignore")
+# 配置日志
+logger = logging.getLogger(__name__)
+
+# 只忽略特定类型的警告，而不是所有警告
+warnings.filterwarnings("ignore", category=FutureWarning)
+warnings.filterwarnings("ignore", category=DeprecationWarning)
+warnings.filterwarnings("ignore", message=".*divide by zero.*")
+warnings.filterwarnings("ignore", message=".*invalid value.*")
+
+# 导入策略系统
+from backend.strategies.base_strategy import BaseStrategy
+from backend.services.strategy_registry import strategy_registry
+from backend.services.strategy_comparison_service import strategy_comparison_service
+from backend.services.position_analysis_service import position_analysis_service
+from backend.services.export_service import export_service
 
 
 class BacktestService:
@@ -549,3 +566,122 @@ class BacktestService:
         pivot_table = monthly_df.pivot(index="year", columns="month", values="return")
 
         return pivot_table
+
+    # ==================== 策略系统支持 ====================
+
+    def run_strategy(
+        self,
+        df: pd.DataFrame,
+        strategy_name: str,
+        strategy_params: Optional[Dict] = None,
+    ) -> Dict:
+        """
+        使用指定策略运行回测
+
+        Args:
+            df: 回测数据
+            strategy_name: 策略名称
+            strategy_params: 策略参数
+
+        Returns:
+            回测结果
+        """
+        if strategy_params is None:
+            strategy_params = {}
+
+        # 获取策略实例
+        strategy = strategy_registry.get_strategy(strategy_name, **strategy_params)
+
+        # 执行回测
+        backtest_result = strategy.backtest(df)
+
+        # 计算性能指标
+        metrics = strategy.calculate_metrics(backtest_result["portfolio_returns"])
+
+        return {
+            "strategy_name": strategy_name,
+            "backtest": backtest_result,
+            "metrics": metrics,
+        }
+
+    def run_strategy_comparison(
+        self,
+        df: pd.DataFrame,
+        strategy_names: List[str],
+        strategy_params: Optional[Dict[str, Dict]] = None,
+    ) -> Dict:
+        """
+        对比多个策略
+
+        Args:
+            df: 回测数据
+            strategy_names: 策略名称列表
+            strategy_params: 策略参数字典
+
+        Returns:
+            对比结果
+        """
+        return strategy_comparison_service.compare_strategies(
+            df=df,
+            strategy_names=strategy_names,
+            strategy_params=strategy_params,
+        )
+
+    def analyze_positions(
+        self,
+        positions: pd.Series,
+        initial_capital: float = 1000000,
+    ) -> Dict:
+        """
+        分析持仓统计信息
+
+        Args:
+            positions: 持仓序列
+            initial_capital: 初始资金
+
+        Returns:
+            持仓统计信息
+        """
+        return position_analysis_service.analyze_positions(
+            positions=positions,
+            initial_capital=initial_capital
+        )
+
+    def export_to_excel(
+        self,
+        backtest_result: Dict,
+        output_path: str,
+        strategy_name: str = "策略",
+    ):
+        """
+        导出回测结果到Excel
+
+        Args:
+            backtest_result: 回测结果
+            output_path: 输出路径
+            strategy_name: 策略名称
+        """
+        metrics = backtest_result.get("metrics")
+        export_service.export_backtest_to_excel(
+            backtest_result=backtest_result,
+            output_path=output_path,
+            metrics=metrics,
+            strategy_name=strategy_name
+        )
+
+    def export_comparison_to_excel(
+        self,
+        comparison_result: Dict,
+        output_path: str,
+    ):
+        """
+        导出策略对比结果到Excel
+
+        Args:
+            comparison_result: 对比结果
+            output_path: 输出路径
+        """
+        export_service.export_comparison_to_excel(
+            comparison_result=comparison_result,
+            output_path=output_path
+        )

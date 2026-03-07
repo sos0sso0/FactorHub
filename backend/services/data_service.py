@@ -2,13 +2,14 @@
 数据服务模块 - 股票数据获取与缓存
 """
 import hashlib
-import pickle
 from pathlib import Path
 from typing import Optional
 import pandas as pd
 import akshare as ak
 
 from backend.core.settings import settings
+from backend.services.cache_service import cache_service
+from backend.services.data_preprocessing_service import data_preprocessing_service
 
 
 class DataService:
@@ -17,27 +18,28 @@ class DataService:
     def __init__(self):
         self.cache_dir = settings.AKSHARE_CACHE_DIR
         self.cache_dir.mkdir(parents=True, exist_ok=True)
+        self.cache_service = cache_service
+        self.preprocessing = data_preprocessing_service
+
+    def _get_cache_key(self, stock_code: str, start_date: str, end_date: str) -> str:
+        """生成缓存键"""
+        cache_key = f"{stock_code}_{start_date}_{end_date}"
+        return hashlib.md5(cache_key.encode()).hexdigest()
 
     def _get_cache_path(self, stock_code: str, start_date: str, end_date: str) -> Path:
-        """生成缓存文件路径"""
-        cache_key = f"{stock_code}_{start_date}_{end_date}"
-        cache_hash = hashlib.md5(cache_key.encode()).hexdigest()
+        """生成缓存文件路径（保留向后兼容）"""
+        cache_hash = self._get_cache_key(stock_code, start_date, end_date)
         return self.cache_dir / f"{cache_hash}.pkl"
 
-    def _load_from_cache(self, cache_path: Path) -> Optional[pd.DataFrame]:
-        """从缓存加载数据"""
-        if not cache_path.exists():
-            return None
-        try:
-            with open(cache_path, "rb") as f:
-                return pickle.load(f)
-        except Exception:
-            return None
+    def _load_from_cache(self, cache_key: str) -> Optional[pd.DataFrame]:
+        """从智能缓存加载数据"""
+        return self.cache_service.get(cache_key)
 
-    def _save_to_cache(self, data: pd.DataFrame, cache_path: Path) -> None:
-        """保存数据到缓存"""
-        with open(cache_path, "wb") as f:
-            pickle.dump(data, f)
+    def _save_to_cache(self, data: pd.DataFrame, cache_key: str, ttl: Optional[int] = None) -> None:
+        """保存数据到智能缓存"""
+        if ttl is None:
+            ttl = settings.CACHE_DEFAULT_TTL
+        self.cache_service.set(cache_key, data, ttl=ttl)
 
     def get_stock_data(
         self,
@@ -61,38 +63,43 @@ class DataService:
         # 标准化股票代码
         stock_code = self._normalize_stock_code(stock_code)
 
-        # 检查缓存
+        # 检查智能缓存
         if use_cache and settings.AKSHARE_CACHE_ENABLED:
-            cache_path = self._get_cache_path(stock_code, start_date, end_date)
-            cached_data = self._load_from_cache(cache_path)
+            cache_key = self._get_cache_key(stock_code, start_date, end_date)
+            cached_data = self._load_from_cache(cache_key)
             if cached_data is not None:
                 return cached_data
 
         # 从 akshare 获取数据
         try:
             if stock_code.endswith(".SH"):
-                symbol = stock_code.replace(".SH", "")
-                df = ak.stock_zh_a_hist(
+                symbol = "sh" + stock_code.replace(".SH", "")
+                df = ak.stock_zh_a_daily(
                     symbol=symbol,
-                    period="daily",
                     start_date=start_date.replace("-", ""),
                     end_date=end_date.replace("-", ""),
                     adjust="qfq",  # 前复权
                 )
             elif stock_code.endswith(".SZ"):
-                symbol = stock_code.replace(".SZ", "")
-                df = ak.stock_zh_a_hist(
+                symbol = "sz" + stock_code.replace(".SZ", "")
+                df = ak.stock_zh_a_daily(
                     symbol=symbol,
-                    period="daily",
                     start_date=start_date.replace("-", ""),
                     end_date=end_date.replace("-", ""),
                     adjust="qfq",
                 )
             else:
                 # 尝试自动识别
-                df = ak.stock_zh_a_hist(
-                    symbol=stock_code,
-                    period="daily",
+                # 添加市场前缀
+                if stock_code.startswith("6"):
+                    symbol = "sh" + stock_code
+                elif stock_code.startswith(("0", "3")):
+                    symbol = "sz" + stock_code
+                else:
+                    symbol = stock_code
+
+                df = ak.stock_zh_a_daily(
+                    symbol=symbol,
                     start_date=start_date.replace("-", ""),
                     end_date=end_date.replace("-", ""),
                     adjust="qfq",
@@ -101,10 +108,13 @@ class DataService:
             # 标准化列名
             df = self._standardize_columns(df)
 
-            # 保存到缓存
+            # 数据预处理
+            df = self._preprocess_data(df)
+
+            # 保存到智能缓存
             if use_cache and settings.AKSHARE_CACHE_ENABLED:
-                cache_path = self._get_cache_path(stock_code, start_date, end_date)
-                self._save_to_cache(df, cache_path)
+                cache_key = self._get_cache_key(stock_code, start_date, end_date)
+                self._save_to_cache(df, cache_key)
 
             return df
 
@@ -181,6 +191,87 @@ class DataService:
             except Exception as e:
                 print(f"Warning: 获取股票 {code} 数据失败: {e}")
         return result
+
+    def _preprocess_data(self, df: pd.DataFrame) -> pd.DataFrame:
+        """
+        预处理数据
+
+        Args:
+            df: 原始数据框
+
+        Returns:
+            预处理后的数据框
+        """
+        # 填充缺失值
+        if settings.DATA_FILL_MISSING:
+            df = self.preprocessing.fill_missing_values(
+                df,
+                method=settings.DATA_FILL_METHOD,
+            )
+
+        # 异常值检测和处理
+        if settings.DATA_OUTLIER_DETECTION:
+            df, _ = self.preprocessing.detect_and_handle_anomalies(
+                df,
+                price_columns=["open", "high", "low", "close"],
+                n_sigma=settings.DATA_OUTLIER_N_SIGMA,
+                handle_method=settings.DATA_OUTLIER_METHOD,
+            )
+
+        return df
+
+    def get_cache_stats(self) -> dict:
+        """获取缓存统计信息"""
+        return self.cache_service.get_stats()
+
+    def cleanup_cache(self) -> int:
+        """清理过期缓存"""
+        return self.cache_service.cleanup_expired()
+
+    def clear_cache(self) -> int:
+        """清空所有缓存"""
+        return self.cache_service.clear_all()
+
+    def incremental_update(
+        self,
+        stock_code: str,
+        existing_df: pd.DataFrame,
+        end_date: str,
+    ) -> pd.DataFrame:
+        """
+        增量更新股票数据
+
+        Args:
+            stock_code: 股票代码
+            existing_df: 现有的数据框
+            end_date: 新的结束日期
+
+        Returns:
+            更新后的数据框
+        """
+        # 获取现有数据的最后日期
+        last_date = existing_df.index.max()
+        start_date = (last_date + pd.Timedelta(days=1)).strftime("%Y-%m-%d")
+
+        # 如果新日期在现有数据之前，直接返回现有数据
+        if start_date > end_date:
+            return existing_df
+
+        # 获取新数据
+        new_df = self.get_stock_data(
+            stock_code=stock_code,
+            start_date=start_date,
+            end_date=end_date,
+            use_cache=True,
+        )
+
+        # 增量合并
+        combined_df = self.preprocessing.incremental_update(
+            existing_df=existing_df,
+            new_df=new_df,
+        )
+
+        return combined_df
 
 
 # 全局数据服务实例

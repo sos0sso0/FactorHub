@@ -56,3 +56,8 @@ Thumbs.db
 *.bak
 *.swp
 data/db/factorflow.db
+.pytest_cache
+todo.md
+tests/
+web_demo.md
+memory/

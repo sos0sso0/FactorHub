@@ -21,6 +21,9 @@ from backend.services.factor_service import factor_service
 from backend.services.analysis_service import analysis_service
 from backend.services.vectorbt_backtest_service import VectorBTBacktestService, check_vectorbt_available
 from backend.repositories.backtest_repository import BacktestRepository
+from backend.services.data_service import data_service
+from backend.services.factor_import_service import factor_import_service
+from backend.services.formula_compiler_service import formula_compiler_service
 
 
 # ============ 初始化 ============
@@ -1476,6 +1479,55 @@ def main():
             ["因子管理", "因子分析", "策略回测"],
             label_visibility="collapsed",
         )
+
+        st.divider()
+
+        # 缓存统计（所有页面显示）
+        with st.expander("💾 缓存统计", expanded=False):
+            cache_stats = data_service.get_cache_stats()
+
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric(
+                    "缓存命中率",
+                    f"{cache_stats.get('hit_rate', 0):.1%}",
+                    help="缓存命中的比例"
+                )
+            with col2:
+                st.metric(
+                    "缓存数量",
+                    cache_stats.get('active_count', 0),
+                    help="当前有效的缓存数量"
+                )
+
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric(
+                    "总大小",
+                    f"{cache_stats.get('total_size_mb', 0):.2f} MB",
+                    help="所有缓存文件的总大小"
+                )
+            with col2:
+                st.metric(
+                    "过期数量",
+                    cache_stats.get('expired_count', 0),
+                    help="已过期的缓存数量"
+                )
+
+            # 缓存管理按钮
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("🧹 清理过期", use_container_width=True):
+                    cleaned = data_service.cleanup_cache()
+                    st.success(f"已清理 {cleaned} 个过期缓存")
+                    st.rerun()
+            with col2:
+                if st.button("🗑️ 清空全部", use_container_width=True):
+                    cleared = data_service.clear_cache()
+                    st.success(f"已清空 {cleared} 个缓存")
+                    st.rerun()
+
+            st.caption(f"命中: {cache_stats.get('hits', 0)} | 未中: {cache_stats.get('misses', 0)}")
 
         st.divider()
 

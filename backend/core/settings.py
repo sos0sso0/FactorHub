@@ -31,6 +31,18 @@ class Settings(BaseSettings):
     AKSHARE_CACHE_ENABLED: bool = True
     AKSHARE_CACHE_DIR: Path = CACHE_DIR / "akshare"
 
+    # 缓存配置
+    CACHE_DEFAULT_TTL: int = 7 * 24 * 60 * 60  # 默认TTL: 7天（秒）
+    CACHE_AUTO_CLEANUP: bool = True  # 是否自动清理过期缓存
+    CACHE_CLEANUP_INTERVAL: int = 24 * 60 * 60  # 清理间隔: 24小时（秒）
+
+    # 数据预处理配置
+    DATA_OUTLIER_DETECTION: bool = True  # 是否启用异常值检测
+    DATA_OUTLIER_N_SIGMA: float = 3.0  # 异常值检测的σ倍数
+    DATA_OUTLIER_METHOD: str = "clip"  # 异常值处理方法: clip/remove/replace
+    DATA_FILL_MISSING: bool = True  # 是否填充缺失值
+    DATA_FILL_METHOD: str = "ffill"  # 缺失值填充方法: ffill/bfill/interpolate
+
     # 分析配置
     DEFAULT_START_DATE: str = "2020-01-01"
     DEFAULT_END_DATE: str = "2024-12-31"

@@ -177,8 +177,9 @@ class VectorBTBacktestService:
                         # 如果入场时间是时间戳，转换为datetime
                         try:
                             trades_df['入场时间'] = pd.to_datetime(trades_df['入场时间'], errors='coerce')
-                        except:
-                            pass
+                        except Exception as e:
+                            import logging
+                            logging.getLogger(__name__).debug(f"入场时间转换失败: {e}")
                         trades_df.set_index('入场时间', inplace=True)
 
                     # 转换出场时间为可读格式
@@ -492,8 +493,9 @@ class VectorBTBacktestService:
                         # 如果入场时间是时间戳，转换为datetime
                         try:
                             trades_df['入场时间'] = pd.to_datetime(trades_df['入场时间'], errors='coerce')
-                        except:
-                            pass
+                        except Exception as e:
+                            import logging
+                            logging.getLogger(__name__).debug(f"入场时间转换失败: {e}")
                         trades_df.set_index('入场时间', inplace=True)
 
                     # 转换出场时间为可读格式

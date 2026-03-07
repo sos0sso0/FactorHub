@@ -2,6 +2,7 @@
 因子分析服务模块 - IC/IR统计、SHAP分析
 """
 import hashlib
+import logging
 import numpy as np
 import pandas as pd
 import xgboost as xgb
@@ -9,6 +10,9 @@ from typing import Dict, List, Optional, Tuple, Any
 from pathlib import Path
 from datetime import datetime
 import json
+
+# 配置日志
+logger = logging.getLogger(__name__)
 
 try:
     import shap
@@ -104,8 +108,10 @@ class AnalysisService:
                             v.values(),
                             index=pd.to_datetime(list(v.keys()))
                         )
-                    except:
+                    except Exception as e:
                         # 如果失败，直接使用字符串索引
+                        import logging
+                        logging.getLogger(__name__).debug(f"日期解析失败，使用字符串索引: {e}")
                         result["ic_ir"]["rolling_ir"][k] = pd.Series(v)
                 else:
                     result["ic_ir"]["rolling_ir"][k] = v
@@ -415,62 +421,62 @@ class AnalysisService:
         if not SHAP_AVAILABLE:
             return {"error": "SHAP library not installed"}
 
-        print(f"[DEBUG SHAP] Starting SHAP analysis")
-        print(f"[DEBUG SHAP] factor_names: {factor_names}")
-        print(f"[DEBUG SHAP] Number of stocks in factor_data: {len(factor_data)}")
+        logger.debug(f"[SHAP] Starting SHAP analysis")
+        logger.debug(f"[SHAP] factor_names: {factor_names}")
+        logger.debug(f"[SHAP] Number of stocks in factor_data: {len(factor_data)}")
 
         # 准备训练数据
         X_list = []
         y_list = []
 
         for stock_code, df in factor_data.items():
-            print(f"[DEBUG SHAP] Processing stock: {stock_code}")
-            print(f"[DEBUG SHAP]   DataFrame columns: {df.columns.tolist()}")
-            print(f"[DEBUG SHAP]   DataFrame shape: {df.shape}")
+            logger.debug(f"[SHAP] Processing stock: {stock_code}")
+            logger.debug(f"[SHAP]   DataFrame columns: {df.columns.tolist()}")
+            logger.debug(f"[SHAP]   DataFrame shape: {df.shape}")
 
             if "future_return_5" not in df.columns:
                 df["future_return_5"] = df["close"].pct_change(5).shift(-5)
 
             # 提取特征列
             feature_cols = [col for col in factor_names if col in df.columns]
-            print(f"[DEBUG SHAP]   Available feature_cols: {feature_cols}")
+            logger.debug(f"[SHAP]   Available feature_cols: {feature_cols}")
 
             if not feature_cols:
-                print(f"[DEBUG SHAP]   No feature columns found, skipping")
+                logger.debug(f"[SHAP]   No feature columns found, skipping")
                 continue
 
             X = df[feature_cols].dropna()
             y = df.loc[X.index, "future_return_5"]
 
-            print(f"[DEBUG SHAP]   X shape before NaN removal: {X.shape}")
-            print(f"[DEBUG SHAP]   X NaN count: {X.isna().sum().sum()}")
+            logger.debug(f"[SHAP]   X shape before NaN removal: {X.shape}")
+            logger.debug(f"[SHAP]   X NaN count: {X.isna().sum().sum()}")
 
             # 移除NaN
             valid_mask = ~(X.isna().any(axis=1) | y.isna())
             X_valid = X[valid_mask]
             y_valid = y[valid_mask]
 
-            print(f"[DEBUG SHAP]   X_valid shape: {X_valid.shape}")
+            logger.debug(f"[SHAP]   X_valid shape: {X_valid.shape}")
 
             if len(X_valid) > 0:
                 X_list.append(X_valid)
                 y_list.append(y_valid)
-                print(f"[DEBUG SHAP]   Added {len(X_valid)} valid samples")
+                logger.debug(f"[SHAP]   Added {len(X_valid)} valid samples")
             else:
-                print(f"[DEBUG SHAP]   No valid samples after NaN removal")
+                logger.debug(f"[SHAP]   No valid samples after NaN removal")
 
-        print(f"[DEBUG SHAP] Total X_list length: {len(X_list)}")
+        logger.debug(f"[SHAP] Total X_list length: {len(X_list)}")
 
         if not X_list:
-            print("[DEBUG SHAP] ERROR: No valid data for SHAP analysis")
+            logger.error("[SHAP] No valid data for SHAP analysis")
             return {"error": "No valid data for SHAP analysis"}
 
         # 合并所有数据
         X_combined = pd.concat(X_list, ignore_index=True)
         y_combined = pd.concat(y_list, ignore_index=True)
 
-        print(f"[DEBUG SHAP] X_combined shape: {X_combined.shape}")
-        print(f"[DEBUG SHAP] X_combined columns: {X_combined.columns.tolist()}")
+        logger.debug(f"[SHAP] X_combined shape: {X_combined.shape}")
+        logger.debug(f"[SHAP] X_combined columns: {X_combined.columns.tolist()}")
 
         # 标准化特征
         scaler = StandardScaler()
@@ -491,7 +497,7 @@ class AnalysisService:
         X_train, X_test = X_scaled[:split_idx], X_scaled[split_idx:]
         y_train, y_test = y_combined[:split_idx], y_combined[split_idx:]
 
-        print(f"[DEBUG SHAP] Training with {len(X_train)} samples, testing with {len(X_test)} samples")
+        logger.debug(f"[SHAP] Training with {len(X_train)} samples, testing with {len(X_test)} samples")
 
         model.fit(X_train, y_train)
 
@@ -505,7 +511,7 @@ class AnalysisService:
             "importance": np.abs(shap_values).mean(axis=0),
         }).sort_values("importance", ascending=False)
 
-        print(f"[DEBUG SHAP] SHAP analysis completed successfully")
+        logger.debug(f"[SHAP] SHAP analysis completed successfully")
 
         return {
             "feature_importance": feature_importance.to_dict("records"),
