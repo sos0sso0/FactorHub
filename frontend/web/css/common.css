@@ -73,12 +73,25 @@ body {
     user-select: none;
 }
 
+/* 小尺寸按钮 */
+.btn-sm {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.875rem;
+}
+
+/* 按钮禁用状态 */
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
 .btn-primary {
     background-color: var(--primary-500);
     color: white;
 }
 
-.btn-primary:hover {
+.btn-primary:hover:not(:disabled) {
     background-color: var(--primary-600);
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
     transform: translateY(-1px);
@@ -94,7 +107,7 @@ body {
     border: 1px solid #e2e8f0;
 }
 
-.btn-secondary:hover {
+.btn-secondary:hover:not(:disabled) {
     background-color: var(--bg-slate-50);
     border-color: var(--primary-300);
 }
@@ -104,7 +117,7 @@ body {
     color: white;
 }
 
-.btn-danger:hover {
+.btn-danger:hover:not(:disabled) {
     background-color: var(--accent-red);
     opacity: 0.9;
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
@@ -126,6 +139,7 @@ body {
 /* 表格 */
 .table-container {
     overflow-x: auto;
+    max-height: calc(100vh - 350px); /* 限制表格高度，使其可滚动 */
 }
 
 table {
@@ -135,6 +149,19 @@ table {
 
 thead {
     background: var(--bg-slate-50);
+}
+
+/* 吸顶表头样式 */
+thead.sticky {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background-color: white;
+}
+
+thead.sticky th {
+    background-color: white;
+    border-bottom: 2px solid #e2e8f0;
 }
 
 th {
@@ -155,6 +182,52 @@ td {
 
 .table-row-hover:hover {
     background: linear-gradient(90deg, rgba(14, 165, 233, 0.05) 0%, rgba(14, 165, 233, 0.02) 100%);
+}
+
+/* 表格列宽优化 */
+table.w-full th,
+table.w-full td {
+    vertical-align: middle;
+}
+
+/* 说明列文本省略 */
+table td .truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    display: block;
+}
+
+/* 确保操作列不换行 */
+table td .whitespace-nowrap {
+    white-space: nowrap;
+}
+
+/* 响应式表格优化 */
+@media (max-width: 1024px) {
+    table {
+        font-size: 0.875rem;
+    }
+
+    th, td {
+        padding: 0.75rem 1rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    table {
+        min-width: 800px;
+    }
+
+    th, td {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8125rem;
+    }
 }
 
 /* 表单元素 */
@@ -379,6 +452,33 @@ td {
     position: relative;     /* 确保相对定位 */
 }
 
+/* ========== 分页控件样式 ========== */
+#pagination-container {
+    border-radius: 0 0 1rem 1rem;
+}
+
+#pagination-info {
+    display: inline-block;
+    min-width: 100px;
+    text-align: center;
+}
+
+/* 确保分页按钮在小屏幕上有合适的间距 */
+@media (max-width: 640px) {
+    #pagination-container {
+        padding: 1rem;
+    }
+
+    #pagination-container .flex {
+        gap: 0.75rem;
+    }
+}
+
+/* 防止分页控件中的文本换行 */
+#pagination-container .whitespace-nowrap {
+    white-space: nowrap;
+}
+
 .chart-container-small {
     width: 100%;
     height: 150px;          /* 小图表高度 */
@@ -395,4 +495,47 @@ td {
     width: 100%;
     height: 400px;          /* 大图表高度 */
     position: relative;
+}
+
+/* ========== 弹窗样式 ========== */
+.modal-backdrop {
+    background-color: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+}
+
+.modal-content {
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+/* 弹窗动画 */
+@keyframes modalFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes modalSlideIn {
+    from {
+        transform: translateY(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-backdrop {
+    animation: modalFadeIn 0.2s ease-out;
+}
+
+.modal-content {
+    animation: modalSlideIn 0.3s ease-out;
 }

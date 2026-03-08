@@ -82,13 +82,13 @@
         <div class="mb-6">
             <div class="border-b border-slate-200">
                 <nav class="flex gap-8">
-                    <button onclick="switchTab('optimize')" id="tab-optimize" class="tab-btn py-4 px-2 border-b-2 border-primary-500 text-primary-600 font-medium">
+                    <button onclick="switchTab('optimize')" id="tab-optimize" class="tab-btn py-4 px-2 border-b-2 border-primary-500 text-primary-600 font-medium cursor-pointer transition-all duration-200">
                         权重优化
                     </button>
-                    <button onclick="switchTab('composite')" id="tab-composite" class="tab-btn py-4 px-2 border-b-2 border-transparent text-slate-600 hover:text-primary-600 font-medium">
+                    <button onclick="switchTab('composite')" id="tab-composite" class="tab-btn py-4 px-2 border-b-2 border-transparent text-slate-600 hover:text-primary-600 font-medium cursor-pointer transition-all duration-200">
                         综合得分
                     </button>
-                    <button onclick="switchTab('compare')" id="tab-compare" class="tab-btn py-4 px-2 border-b-2 border-transparent text-slate-600 hover:text-primary-600 font-medium">
+                    <button onclick="switchTab('compare')" id="tab-compare" class="tab-btn py-4 px-2 border-b-2 border-transparent text-slate-600 hover:text-primary-600 font-medium cursor-pointer transition-all duration-200">
                         方法对比
                     </button>
                 </nav>
@@ -154,8 +154,8 @@
                                 </select>
                             </div>
 
-                            <button type="submit" class="btn btn-primary w-full">
-                                🚀 开始优化
+                            <button type="submit" class="btn btn-primary w-full cursor-pointer transition-all duration-200">
+                                开始优化
                             </button>
                         </form>
                     </div>
@@ -167,7 +167,6 @@
 
                             <!-- 等待提示 -->
                             <div id="optimize-placeholder" class="text-center py-12">
-                                <div class="text-6xl mb-4">⚖️</div>
                                 <p class="text-slate-600">选择因子和优化方法后点击"开始优化"</p>
                             </div>
 
@@ -235,8 +234,8 @@
                                 <input type="date" name="end_date" id="composite-end-date" class="input" required>
                             </div>
                             <div class="flex items-end">
-                                <button type="submit" class="btn btn-primary w-full">
-                                    🚀 计算得分
+                                <button type="submit" class="btn btn-primary w-full cursor-pointer transition-all duration-200">
+                                    计算得分
                                 </button>
                             </div>
                         </div>
@@ -251,7 +250,6 @@
 
                     <!-- 综合得分结果 -->
                     <div id="composite-placeholder" class="text-center py-12">
-                        <div class="text-6xl mb-4">📊</div>
                         <p class="text-slate-600">选择因子后点击"计算得分"</p>
                     </div>
 
@@ -312,8 +310,8 @@
                                 <input type="date" name="end_date" id="compare-end-date" class="input" required>
                             </div>
                             <div class="flex items-end">
-                                <button type="submit" class="btn btn-primary w-full">
-                                    🚀 对比方法
+                                <button type="submit" class="btn btn-primary w-full cursor-pointer transition-all duration-200">
+                                    对比方法
                                 </button>
                             </div>
                         </div>

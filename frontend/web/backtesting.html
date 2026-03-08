@@ -82,10 +82,10 @@
         <div class="mb-6">
             <div class="border-b border-slate-200">
                 <nav class="flex gap-8">
-                    <button onclick="switchTab('single')" id="tab-single" class="tab-btn py-4 px-2 border-b-2 border-primary-500 text-primary-600 font-medium">
+                    <button onclick="switchTab('single')" id="tab-single" class="tab-btn py-4 px-2 border-b-2 border-primary-500 text-primary-600 font-medium cursor-pointer transition-all duration-200">
                         单策略回测
                     </button>
-                    <button onclick="switchTab('comparison')" id="tab-comparison" class="tab-btn py-4 px-2 border-b-2 border-transparent text-slate-600 hover:text-primary-600 font-medium">
+                    <button onclick="switchTab('comparison')" id="tab-comparison" class="tab-btn py-4 px-2 border-b-2 border-transparent text-slate-600 hover:text-primary-600 font-medium cursor-pointer transition-all duration-200">
                         多策略对比
                     </button>
                 </nav>
@@ -184,8 +184,8 @@
                                 </select>
                             </div>
 
-                            <button type="submit" class="btn btn-primary w-full">
-                                🚀 运行回测
+                            <button type="submit" class="btn btn-primary w-full cursor-pointer transition-all duration-200">
+                                运行回测
                             </button>
                         </form>
                     </div>
@@ -197,7 +197,6 @@
 
                             <!-- 等待提示 -->
                             <div id="single-placeholder" class="text-center py-12">
-                                <div class="text-6xl mb-4">📊</div>
                                 <p class="text-slate-600">配置回测参数后点击"运行回测"按钮</p>
                             </div>
 
@@ -295,8 +294,8 @@
 
                             <hr class="my-4">
 
-                            <button type="submit" class="btn btn-primary w-full">
-                                🚀 运行策略对比
+                            <button type="submit" class="btn btn-primary w-full cursor-pointer transition-all duration-200">
+                                运行策略对比
                             </button>
                         </form>
                     </div>
@@ -308,7 +307,6 @@
 
                             <!-- 等待提示 -->
                             <div id="comparison-placeholder" class="text-center py-12">
-                                <div class="text-6xl mb-4">📊</div>
                                 <p class="text-slate-600">配置策略后点击"运行策略对比"按钮</p>
                             </div>
 

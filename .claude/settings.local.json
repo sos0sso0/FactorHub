@@ -135,7 +135,11 @@
       "Bash(python3 -c \":*)",
       "Bash(python3 \"C:\\\\Users\\\\yl_zh\\\\.claude\\\\skills\\\\ui-ux-pro-max\\\\scripts\\\\search.py\" \"financial dashboard fintech data visualization analytics platform\" --design-system -p \"FactorFlow\")",
       "Bash(uv run python \"C:\\\\Users\\\\yl_zh\\\\.claude\\\\skills\\\\ui-ux-pro-max\\\\scripts\\\\search.py\" \"financial dashboard fintech data visualization analytics platform\" --design-system -p \"FactorFlow\")",
-      "Bash(uv run python update_ui.py)"
+      "Bash(uv run python update_ui.py)",
+      "Bash(uv run python scripts/verify_ui_optimization.py)",
+      "Bash(while read count file)",
+      "Bash(do echo \"$file: $count\")",
+      "Bash(done)"
     ],
     "deny": [],
     "ask": []

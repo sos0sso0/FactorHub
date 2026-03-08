@@ -105,8 +105,8 @@
                     <p class="text-xs text-slate-500 mb-3">选择作为遗传算法输入的基础因子</p>
 
                     <div class="mb-4">
-                        <button type="button" onclick="loadFactors()" class="btn btn-secondary text-sm mb-2">
-                            🔄 加载因子列表
+                        <button type="button" onclick="loadFactors()" class="btn btn-secondary text-sm mb-2 cursor-pointer transition-all duration-200">
+                            加载因子列表
                         </button>
                     </div>
 
@@ -171,7 +171,7 @@
                     </div>
 
                     <button type="submit" class="btn btn-primary w-full">
-                        🧬 开始挖掘
+                        开始挖掘
                     </button>
                 </form>
             </div>
@@ -183,7 +183,6 @@
 
                     <!-- 等待提示 -->
                     <div id="mining-placeholder" class="text-center py-12">
-                        <div class="text-6xl mb-4">🧬</div>
                         <p class="text-slate-600">配置参数后点击"开始挖掘"按钮</p>
                         <p class="text-sm text-slate-500 mt-2">遗传算法将自动搜索最优因子表达式</p>
                     </div>
@@ -234,11 +233,11 @@
                         </div>
 
                         <div class="flex gap-4">
-                            <button onclick="saveAllFactors()" class="btn btn-primary flex-1">
-                                💾 保存全部
+                            <button onclick="saveAllFactors()" class="btn btn-primary flex-1 cursor-pointer transition-all duration-200">
+                                保存全部
                             </button>
-                            <button onclick="exportResults()" class="btn btn-secondary">
-                                📥 导出结果
+                            <button onclick="exportResults()" class="btn btn-secondary cursor-pointer transition-all duration-200">
+                                导出结果
                             </button>
                         </div>
                     </div>
@@ -446,11 +445,11 @@
                         </div>
                     </div>
                     <div class="flex gap-2">
-                        <button onclick="saveFactor(${index})" class="btn btn-secondary text-sm py-1 px-3">
-                            💾 保存
+                        <button onclick="saveFactor(${index})" class="btn btn-secondary text-sm py-1 px-3 cursor-pointer transition-all duration-200">
+                            保存
                         </button>
-                        <button onclick="analyzeFactor(${index})" class="btn btn-secondary text-sm py-1 px-3">
-                            📊 分析
+                        <button onclick="analyzeFactor(${index})" class="btn btn-secondary text-sm py-1 px-3 cursor-pointer transition-all duration-200">
+                            分析
                         </button>
                     </div>
                 </div>
