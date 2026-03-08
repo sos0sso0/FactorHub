@@ -9,7 +9,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Sans:wght@300;400;500;600;700&family=Fira+Code:wght@400;500;600;700&display=swap" rel="stylesheet">
 
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -22,21 +22,25 @@
             theme: {
                 extend: {
                     fontFamily: {
-                        sans: ['"Noto Sans SC"', 'sans-serif'],
-                        mono: ['"JetBrains Mono"', 'monospace'],
+                        sans: ['"Fira Sans"', 'sans-serif'],
+                        mono: ['"Fira Code"', 'monospace'],
                     },
                     colors: {
                         primary: {
-                            50: '#fef2f2',
-                            100: '#fee2e2',
-                            200: '#fecaca',
-                            300: '#fca5a5',
-                            400: '#f87171',
-                            500: '#ef4444',
-                            600: '#dc2626',
-                            700: '#b91c1c',
-                            800: '#991b1b',
-                            900: '#7f1d1b',
+                            50: '#EFF6FF',
+                            100: '#DBEAFE',
+                            200: '#BFDBFE',
+                            300: '#93C5FD',
+                            400: '#60A5FA',
+                            500: '#3B82F6',
+                            600: '#2563EB',
+                            700: '#1D4ED8',
+                            800: '#1E40AF',
+                            900: '#1E3A8A',
+                        },
+                        accent: {
+                            500: '#F59E0B',
+                            600: '#D97706',
                         }
                     }
                 }
@@ -46,11 +50,15 @@
 </head>
 <body class="bg-slate-50">
     <!-- 顶部导航栏 -->
-    <header class="bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow-lg">
+    <header class="bg-gradient-to-r from-primary-700 to-primary-600 text-white shadow-lg">
         <div class="container mx-auto px-6 py-4">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-3">
-                    <div class="text-3xl">📊</div>
+                    <div class="text-3xl">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                    </div>
                     <div>
                         <h1 class="text-2xl font-bold">FactorFlow</h1>
                         <p class="text-sm text-primary-100">股票因子分析系统</p>
@@ -79,7 +87,11 @@
                         <p class="text-slate-600 text-sm">预置因子</p>
                         <p class="text-3xl font-bold text-slate-800 mt-2" id="preset-count">-</p>
                     </div>
-                    <div class="text-4xl">📋</div>
+                    <div class="text-4xl">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                    </div>
                 </div>
             </div>
 
@@ -90,7 +102,11 @@
                         <p class="text-slate-600 text-sm">用户因子</p>
                         <p class="text-3xl font-bold text-slate-800 mt-2" id="user-count">-</p>
                     </div>
-                    <div class="text-4xl">✏️</div>
+                    <div class="text-4xl">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                    </div>
                 </div>
             </div>
 
@@ -101,7 +117,11 @@
                         <p class="text-slate-600 text-sm">总因子数</p>
                         <p class="text-3xl font-bold text-primary-600 mt-2" id="total-count">-</p>
                     </div>
-                    <div class="text-4xl">📊</div>
+                    <div class="text-4xl">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                    </div>
                 </div>
             </div>
 
@@ -112,7 +132,11 @@
                         <p class="text-slate-600 text-sm">缓存命中率</p>
                         <p class="text-3xl font-bold text-accent-green mt-2" id="cache-hit-rate">-</p>
                     </div>
-                    <div class="text-4xl">💾</div>
+                    <div class="text-4xl">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-12 h-12 text-primary-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                    </div>
                 </div>
             </div>
         </div>
@@ -122,9 +146,13 @@
             <h2 class="text-xl font-bold text-slate-800 mb-4">快速开始</h2>
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 <!-- 因子管理 -->
-                <a href="factor-management.html" class="card hover:shadow-lg transition-shadow cursor-pointer">
+                <a href="factor-management.html" class="card hover:shadow-lg transition-shadow cursor-pointer group">
                     <div class="flex items-start gap-4">
-                        <div class="text-3xl">📋</div>
+                        <div class="text-3xl">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-primary-500 group-hover:text-primary-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                        </div>
                         <div>
                             <h3 class="text-lg font-semibold text-slate-800 mb-2">因子管理</h3>
                             <p class="text-sm text-slate-600">查看、创建和管理因子，支持批量生成和预筛选</p>
@@ -133,9 +161,13 @@
                 </a>
 
                 <!-- 因子分析 -->
-                <a href="factor-analysis.html" class="card hover:shadow-lg transition-shadow cursor-pointer">
+                <a href="factor-analysis.html" class="card hover:shadow-lg transition-shadow cursor-pointer group">
                     <div class="flex items-start gap-4">
-                        <div class="text-3xl">📈</div>
+                        <div class="text-3xl">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-primary-500 group-hover:text-primary-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z" />
+                            </svg>
+                        </div>
                         <div>
                             <h3 class="text-lg font-semibold text-slate-800 mb-2">因子分析</h3>
                             <p class="text-sm text-slate-600">IC分析、稳定性检验、多周期分析等深度分析</p>
@@ -144,9 +176,13 @@
                 </a>
 
                 <!-- 因子挖掘 -->
-                <a href="factor-mining.html" class="card hover:shadow-lg transition-shadow cursor-pointer">
+                <a href="factor-mining.html" class="card hover:shadow-lg transition-shadow cursor-pointer group">
                     <div class="flex items-start gap-4">
-                        <div class="text-3xl">🧬</div>
+                        <div class="text-3xl">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-primary-500 group-hover:text-primary-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                            </svg>
+                        </div>
                         <div>
                             <h3 class="text-lg font-semibold text-slate-800 mb-2">因子挖掘</h3>
                             <p class="text-sm text-slate-600">使用遗传算法自动发现优质因子表达式</p>
@@ -155,9 +191,13 @@
                 </a>
 
                 <!-- 组合分析 -->
-                <a href="portfolio-analysis.html" class="card hover:shadow-lg transition-shadow cursor-pointer">
+                <a href="portfolio-analysis.html" class="card hover:shadow-lg transition-shadow cursor-pointer group">
                     <div class="flex items-start gap-4">
-                        <div class="text-3xl">⚖️</div>
+                        <div class="text-3xl">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-primary-500 group-hover:text-primary-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+                            </svg>
+                        </div>
                         <div>
                             <h3 class="text-lg font-semibold text-slate-800 mb-2">组合分析</h3>
                             <p class="text-sm text-slate-600">多因子组合优化、权重分配和绩效分析</p>
@@ -166,9 +206,13 @@
                 </a>
 
                 <!-- 策略回测 -->
-                <a href="backtesting.html" class="card hover:shadow-lg transition-shadow cursor-pointer">
+                <a href="backtesting.html" class="card hover:shadow-lg transition-shadow cursor-pointer group">
                     <div class="flex items-start gap-4">
-                        <div class="text-3xl">🔄</div>
+                        <div class="text-3xl">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-primary-500 group-hover:text-primary-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                            </svg>
+                        </div>
                         <div>
                             <h3 class="text-lg font-semibold text-slate-800 mb-2">策略回测</h3>
                             <p class="text-sm text-slate-600">单策略和多策略对比回测，完整的绩效分析</p>
@@ -177,9 +221,13 @@
                 </a>
 
                 <!-- API文档 -->
-                <a href="http://localhost:8000/docs" target="_blank" class="card hover:shadow-lg transition-shadow cursor-pointer">
+                <a href="http://localhost:8000/docs" target="_blank" class="card hover:shadow-lg transition-shadow cursor-pointer group">
                     <div class="flex items-start gap-4">
-                        <div class="text-3xl">📚</div>
+                        <div class="text-3xl">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="w-10 h-10 text-primary-500 group-hover:text-primary-600 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                            </svg>
+                        </div>
                         <div>
                             <h3 class="text-lg font-semibold text-slate-800 mb-2">API 文档</h3>
                             <p class="text-sm text-slate-600">查看完整的 REST API 文档和接口说明</p>

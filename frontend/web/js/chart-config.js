@@ -23,7 +23,7 @@ const COMMON_CHART_OPTIONS = {
             position: 'top',
             labels: {
                 font: {
-                    family: "'Noto Sans SC', sans-serif",
+                    family: "'Fira Sans', sans-serif",
                     size: 12
                 },
                 padding: 15,
@@ -34,11 +34,11 @@ const COMMON_CHART_OPTIONS = {
             backgroundColor: 'rgba(0, 0, 0, 0.8)',
             padding: 12,
             titleFont: {
-                family: "'Noto Sans SC', sans-serif",
+                family: "'Fira Sans', sans-serif",
                 size: 13
             },
             bodyFont: {
-                family: "'JetBrains Mono', monospace",
+                family: "'Fira Code', monospace",
                 size: 12
             },
             cornerRadius: 6,
@@ -53,7 +53,7 @@ const COMMON_CHART_OPTIONS = {
                 maxTicksLimit: 12,
                 font: {
                     size: 11,
-                    family: "'Noto Sans SC', sans-serif"
+                    family: "'Fira Sans', sans-serif"
                 },
                 color: '#64748b'
             },
@@ -66,7 +66,7 @@ const COMMON_CHART_OPTIONS = {
             ticks: {
                 font: {
                     size: 11,
-                    family: "'JetBrains Mono', monospace"
+                    family: "'Fira Code', monospace"
                 },
                 color: '#64748b',
                 padding: 8

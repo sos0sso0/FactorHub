@@ -11,7 +11,7 @@
 }
 
 body {
-    font-family: 'Noto Sans SC', sans-serif;
+    font-family: 'Fira Sans', sans-serif;
     background-color: #f8fafc;
     color: #1e293b;
     line-height: 1.6;
@@ -19,22 +19,26 @@ body {
 
 /* 数字使用等宽字体 */
 .font-mono {
-    font-family: 'JetBrains Mono', monospace;
+    font-family: 'Fira Code', monospace;
 }
 
 /* ========== 颜色系统 ========== */
 :root {
-    /* 主题色（红色系） */
-    --primary-50: #fef2f2;
-    --primary-100: #fee2e2;
-    --primary-200: #fecaca;
-    --primary-300: #fca5a5;
-    --primary-400: #f87171;
-    --primary-500: #ef4444;
-    --primary-600: #dc2626;
-    --primary-700: #b91c1c;
-    --primary-800: #991b1b;
-    --primary-900: #7f1d1b;
+    /* 主题色（蓝色系 - 专业金融风格） */
+    --primary-50: #EFF6FF;
+    --primary-100: #DBEAFE;
+    --primary-200: #BFDBFE;
+    --primary-300: #93C5FD;
+    --primary-400: #60A5FA;
+    --primary-500: #3B82F6;
+    --primary-600: #2563EB;
+    --primary-700: #1D4ED8;
+    --primary-800: #1E40AF;
+    --primary-900: #1E3A8A;
+
+    /* 强调色 */
+    --accent-500: #F59E0B;
+    --accent-600: #D97706;
 
     /* 功能色 */
     --accent-red: #ef4444;
@@ -63,9 +67,10 @@ body {
     border-radius: 0.5rem;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s ease-in-out;
     border: none;
     gap: 0.5rem;
+    user-select: none;
 }
 
 .btn-primary {
@@ -75,7 +80,12 @@ body {
 
 .btn-primary:hover {
     background-color: var(--primary-600);
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    transform: translateY(-1px);
+}
+
+.btn-primary:active {
+    transform: translateY(0);
 }
 
 .btn-secondary {
@@ -86,6 +96,7 @@ body {
 
 .btn-secondary:hover {
     background-color: var(--bg-slate-50);
+    border-color: var(--primary-300);
 }
 
 .btn-danger {
@@ -94,7 +105,9 @@ body {
 }
 
 .btn-danger:hover {
-    background-color: var(--primary-700);
+    background-color: var(--accent-red);
+    opacity: 0.9;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
 /* 卡片 */
@@ -103,6 +116,11 @@ body {
     border-radius: 1rem;
     box-shadow: 0 2px 15px -3px rgba(0, 0, 0, 0.07), 0 10px 20px -2px rgba(0, 0, 0, 0.04);
     padding: 1.5rem;
+    transition: all 0.2s ease-in-out;
+}
+
+.card:hover {
+    box-shadow: 0 4px 20px -3px rgba(59, 130, 246, 0.15), 0 12px 28px -2px rgba(0, 0, 0, 0.08);
 }
 
 /* 表格 */
@@ -152,7 +170,14 @@ td {
 .input:focus {
     outline: none;
     border-color: var(--primary-500);
-    box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.input:focus-visible,
+.select:focus-visible,
+.btn:focus-visible {
+    outline: 2px solid var(--primary-500);
+    outline-offset: 2px;
 }
 
 .select {

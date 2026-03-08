@@ -134,7 +134,8 @@
       "Bash(findstr \":8000\\\\|8080\")",
       "Bash(python3 -c \":*)",
       "Bash(python3 \"C:\\\\Users\\\\yl_zh\\\\.claude\\\\skills\\\\ui-ux-pro-max\\\\scripts\\\\search.py\" \"financial dashboard fintech data visualization analytics platform\" --design-system -p \"FactorFlow\")",
-      "Bash(uv run python \"C:\\\\Users\\\\yl_zh\\\\.claude\\\\skills\\\\ui-ux-pro-max\\\\scripts\\\\search.py\" \"financial dashboard fintech data visualization analytics platform\" --design-system -p \"FactorFlow\")"
+      "Bash(uv run python \"C:\\\\Users\\\\yl_zh\\\\.claude\\\\skills\\\\ui-ux-pro-max\\\\scripts\\\\search.py\" \"financial dashboard fintech data visualization analytics platform\" --design-system -p \"FactorFlow\")",
+      "Bash(uv run python update_ui.py)"
     ],
     "deny": [],
     "ask": []
