@@ -238,7 +238,8 @@ const FactorDetail: React.FC = () => {
       name: factor.name,
       category: factor.category,
       description: factor.description || '',
-      code: factor.code
+      code: factor.code,
+      formula_type: (factor as any).formula_type || 'expression'
     })
     setEditing(true)
   }
@@ -282,6 +283,27 @@ const FactorDetail: React.FC = () => {
   const handleCancelEdit = () => {
     setEditing(false)
     setEditForm({})
+  }
+
+  const handleValidateFormula = async () => {
+    if (!editForm.code) {
+      message.warning('请先输入因子代码')
+      return
+    }
+
+    try {
+      const response = await api.validateFactor({
+        code: editForm.code,
+        formula_type: editForm.formula_type || 'expression'
+      } as any) as any
+      if (response.success) {
+        message.success('公式验证通过')
+      } else {
+        message.error(response.message || '公式验证失败')
+      }
+    } catch (error) {
+      message.error('验证失败')
+    }
   }
 
   // 删除因子
@@ -2949,8 +2971,8 @@ const FactorDetail: React.FC = () => {
       <Modal
         title="编辑因子"
         open={editing}
-        onOk={handleSaveEdit}
         onCancel={handleCancelEdit}
+        footer={null}
         width={600}
         destroyOnClose
       >
@@ -2963,7 +2985,7 @@ const FactorDetail: React.FC = () => {
             <Input
               value={editForm.name}
               onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-              placeholder="请输入因子名称"
+              placeholder="例如：RSI指标"
             />
           </Form.Item>
 
@@ -2975,7 +2997,7 @@ const FactorDetail: React.FC = () => {
             <Select
               value={editForm.category}
               onChange={(value) => setEditForm({ ...editForm, category: value })}
-              placeholder="请选择分类"
+              placeholder="请选择"
             >
               <Option value="技术指标">技术指标</Option>
               <Option value="价格动量">价格动量</Option>
@@ -2986,26 +3008,40 @@ const FactorDetail: React.FC = () => {
           </Form.Item>
 
           <Form.Item
-            label="因子说明"
+            label="说明"
             style={{ marginBottom: 16 }}
           >
             <Input.TextArea
               value={editForm.description}
               onChange={(e) => setEditForm({ ...editForm, description: e.target.value })}
-              placeholder="请输入因子说明"
+              placeholder="简要描述因子的含义和用途"
               rows={3}
             />
           </Form.Item>
 
           <Form.Item
-            label="因子公式"
+            label="公式类型"
+            style={{ marginBottom: 16 }}
+          >
+            <Select
+              value={editForm.formula_type || 'expression'}
+              onChange={(value) => setEditForm({ ...editForm, formula_type: value })}
+            >
+              <Option value="expression">表达式</Option>
+              <Option value="function">函数</Option>
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            label="因子代码"
             required
             style={{ marginBottom: 16 }}
+            extra="支持 Python 表达式，可使用 close, open, high, low, volume 等字段"
           >
             <Input.TextArea
               value={editForm.code}
               onChange={(e) => setEditForm({ ...editForm, code: e.target.value })}
-              placeholder="请输入因子公式"
+              placeholder="例如：RSI(close, 14)"
               rows={6}
               className="font-mono"
               style={{
@@ -3019,6 +3055,17 @@ const FactorDetail: React.FC = () => {
                 overflowY: 'auto'
               }}
             />
+          </Form.Item>
+
+          <Form.Item>
+            <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+              <Button type="primary" onClick={handleSaveEdit} style={{ flex: 1 }}>
+                保存修改
+              </Button>
+              <Button onClick={handleValidateFormula}>
+                验证公式
+              </Button>
+            </Space>
           </Form.Item>
         </Form>
       </Modal>
