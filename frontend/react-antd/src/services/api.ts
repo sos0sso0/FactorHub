@@ -145,6 +145,46 @@ export const api = {
   // 批量生成因子
   batchGenerateFactors(data: any) {
     return request.post('/factors/batch-generate', data)
+  },
+
+  // 因子暴露度分析
+  analyzeExposure(data: {
+    factor_name: string
+    stock_codes: string[]
+    start_date: string
+    end_date: string
+  }) {
+    return request.post('/analysis/exposure', data)
+  },
+
+  // 因子有效性分析
+  analyzeEffectiveness(data: {
+    factor_name: string
+    stock_codes: string[]
+    start_date: string
+    end_date: string
+  }) {
+    return request.post('/analysis/effectiveness', data)
+  },
+
+  // 因子贡献度分解
+  analyzeAttribution(data: {
+    factor_name: string
+    stock_codes: string[]
+    start_date: string
+    end_date: string
+  }) {
+    return request.post('/analysis/attribution', data)
+  },
+
+  // 时间序列动态监测
+  analyzeMonitoring(data: {
+    factor_name: string
+    stock_codes: string[]
+    start_date: string
+    end_date: string
+  }) {
+    return request.post('/analysis/monitoring', data)
   }
 }
 

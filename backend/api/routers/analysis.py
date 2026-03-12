@@ -13,6 +13,10 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent.parent))
 from backend.services.analysis_service import analysis_service
 from backend.services.factor_stability_service import factor_stability_service
 from backend.services.enhanced_analysis_service import enhanced_analysis_service
+from backend.services.factor_exposure_service import factor_exposure_service
+from backend.services.factor_effectiveness_service import factor_effectiveness_service
+from backend.services.factor_attribution_service import factor_attribution_service
+from backend.services.factor_monitoring_service import factor_monitoring_service
 
 router = APIRouter()
 
@@ -330,3 +334,214 @@ async def decay_analysis(request: ICAnalysisRequest):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/exposure")
+async def exposure_analysis(request: CalculateRequest):
+    """因子暴露度分析"""
+    import logging
+    import traceback
+    logger = logging.getLogger(__name__)
+
+    try:
+        from backend.services.data_service import data_service
+        from backend.services.factor_service import factor_service
+        from backend.repositories.factor_repository import FactorRepository
+        from backend.core.database import get_db_session
+
+        logger.info(f"开始因子暴露度分析: {request.factor_name}, 股票: {request.stock_codes}")
+
+        # 获取因子定义
+        db = get_db_session()
+        repo = FactorRepository(db)
+        factor = repo.get_by_name(request.factor_name)
+        db.close()
+
+        if not factor:
+            raise HTTPException(status_code=404, detail=f"因子 '{request.factor_name}' 不存在")
+
+        # 获取因子数据
+        factor_data = factor_service.calculate_factors_for_stocks(
+            request.stock_codes,
+            [request.factor_name],
+            request.start_date,
+            request.end_date
+        )
+
+        if not factor_data:
+            raise HTTPException(status_code=500, detail="未能获取有效的因子数据")
+
+        # 调用暴露度分析服务
+        result = factor_exposure_service.calculate_exposure_metrics(
+            factor_data=factor_data,
+            factor_name=request.factor_name,
+            window=20
+        )
+
+        return {
+            "success": True,
+            "data": result
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"因子暴露度分析失败: {str(e)}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"因子暴露度分析失败: {str(e)}")
+
+
+@router.post("/effectiveness")
+async def effectiveness_analysis(request: ICAnalysisRequest):
+    """因子有效性分析"""
+    import logging
+    import traceback
+    logger = logging.getLogger(__name__)
+
+    try:
+        from backend.services.data_service import data_service
+        from backend.services.factor_service import factor_service
+        from backend.repositories.factor_repository import FactorRepository
+        from backend.core.database import get_db_session
+
+        logger.info(f"开始因子有效性分析: {request.factor_name}, 股票: {request.stock_codes}")
+
+        # 获取因子定义
+        db = get_db_session()
+        repo = FactorRepository(db)
+        factor = repo.get_by_name(request.factor_name)
+        db.close()
+
+        if not factor:
+            raise HTTPException(status_code=404, detail=f"因子 '{request.factor_name}' 不存在")
+
+        # 获取因子数据
+        factor_data = factor_service.calculate_factors_for_stocks(
+            request.stock_codes,
+            [request.factor_name],
+            request.start_date,
+            request.end_date
+        )
+
+        if not factor_data:
+            raise HTTPException(status_code=500, detail="未能获取有效的因子数据")
+
+        # 调用有效性分析服务
+        result = factor_effectiveness_service.analyze_effectiveness(
+            factor_data=factor_data,
+            factor_name=request.factor_name,
+            future_periods=[1, 5, 10, 20]
+        )
+
+        return {
+            "success": True,
+            "data": result
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"因子有效性分析失败: {str(e)}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"因子有效性分析失败: {str(e)}")
+
+
+@router.post("/attribution")
+async def attribution_analysis(request: ICAnalysisRequest):
+    """因子贡献度分解"""
+    import logging
+    import traceback
+    logger = logging.getLogger(__name__)
+
+    try:
+        from backend.services.data_service import data_service
+        from backend.services.factor_service import factor_service
+        from backend.repositories.factor_repository import FactorRepository
+        from backend.core.database import get_db_session
+
+        logger.info(f"开始因子贡献度分解: {request.factor_name}, 股票: {request.stock_codes}")
+
+        # 获取因子定义
+        db = get_db_session()
+        repo = FactorRepository(db)
+        factor = repo.get_by_name(request.factor_name)
+        db.close()
+
+        if not factor:
+            raise HTTPException(status_code=404, detail=f"因子 '{request.factor_name}' 不存在")
+
+        # 获取因子数据
+        factor_data = factor_service.calculate_factors_for_stocks(
+            request.stock_codes,
+            [request.factor_name],
+            request.start_date,
+            request.end_date
+        )
+
+        if not factor_data:
+            raise HTTPException(status_code=500, detail="未能获取有效的因子数据")
+
+        # 调用贡献度分解服务
+        result = factor_attribution_service.analyze_attribution(
+            factor_data=factor_data,
+            factor_name=request.factor_name,
+            benchmark_data=None
+        )
+
+        return {
+            "success": True,
+            "data": result
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"因子贡献度分解失败: {str(e)}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"因子贡献度分解失败: {str(e)}")
+
+
+@router.post("/monitoring")
+async def monitoring_analysis(request: ICAnalysisRequest):
+    """时间序列动态监测"""
+    import logging
+    import traceback
+    logger = logging.getLogger(__name__)
+
+    try:
+        from backend.services.data_service import data_service
+        from backend.services.factor_service import factor_service
+        from backend.repositories.factor_repository import FactorRepository
+        from backend.core.database import get_db_session
+
+        logger.info(f"开始时间序列动态监测: {request.factor_name}, 股票: {request.stock_codes}")
+
+        # 获取因子定义
+        db = get_db_session()
+        repo = FactorRepository(db)
+        factor = repo.get_by_name(request.factor_name)
+        db.close()
+
+        if not factor:
+            raise HTTPException(status_code=404, detail=f"因子 '{request.factor_name}' 不存在")
+
+        # 获取因子数据
+        factor_data = factor_service.calculate_factors_for_stocks(
+            request.stock_codes,
+            [request.factor_name],
+            request.start_date,
+            request.end_date
+        )
+
+        if not factor_data:
+            raise HTTPException(status_code=500, detail="未能获取有效的因子数据")
+
+        # 调用动态监测服务
+        result = factor_monitoring_service.monitor_dynamics(
+            factor_data=factor_data,
+            factor_name=request.factor_name
+        )
+
+        return {
+            "success": True,
+            "data": result
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"时间序列动态监测失败: {str(e)}\n{traceback.format_exc()}")
+        raise HTTPException(status_code=500, detail=f"时间序列动态监测失败: {str(e)}")

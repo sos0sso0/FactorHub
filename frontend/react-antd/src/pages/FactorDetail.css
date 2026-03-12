@@ -1,8 +1,8 @@
 /* ========== 全局容器 ========== */
 .factor-detail-container {
-  min-height: 100vh;
+  min-height: auto;
   position: relative;
-  padding: 0;
+  padding: 16px;
   background: transparent;
 }
 
@@ -29,96 +29,133 @@
   z-index: 1;
 }
 
-/* ========== 页面头部 ========== */
-.factor-detail-container .page-header {
+/* ========== 主内容区域 ========== */
+.factor-detail-container .factor-detail-content {
   position: relative;
   z-index: 10;
-  padding: 32px 0;
-  background: rgba(255, 255, 255, 0.85);
+}
+
+/* ========== 加载容器 ========== */
+.factor-detail-container .loading-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+/* ========== 左栏样式 ========== */
+.factor-detail-container .left-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.factor-detail-container .basic-info-card {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border: 1px solid rgba(59, 130, 246, 0.12) !important;
+  border-radius: 16px !important;
   backdrop-filter: blur(20px);
-  border-bottom: 1px solid rgba(59, 130, 246, 0.15);
   box-shadow: 0 2px 12px rgba(59, 130, 246, 0.06);
 }
 
-.factor-detail-container .header-content {
-  max-width: 1400px;
-  margin: 0 auto;
-  display: flex;
-  align-items: flex-start;
-  gap: 24px;
-  padding: 0 40px;
+.factor-detail-container .basic-info-card .info-header {
+  margin-bottom: 16px;
 }
 
-.factor-detail-container .back-button {
-  flex-shrink: 0;
-  margin-top: 4px;
-}
-
-.factor-detail-container .header-title {
-  flex: 1;
-}
-
-.factor-detail-container .page-title {
-  font-size: 32px;
-  font-weight: 800;
-  margin: 0 0 8px 0;
+.factor-detail-container .basic-info-card .factor-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin: 0 0 16px 0;
   background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 50%, #6366f1 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-.factor-detail-container .page-subtitle {
-  font-size: 14px;
-  color: #64748b;
-  margin: 0 0 12px 0;
-  line-height: 1.6;
-}
-
-.factor-detail-container .header-meta {
-  margin-top: 8px;
-}
-
-.factor-detail-container .header-meta .meta-item {
-  font-size: 13px;
-  color: #64748b;
-}
-
-.factor-detail-container .header-meta .ant-tag {
-  font-size: 12px;
-  padding: 4px 10px;
-  border-radius: 6px;
-}
-
-/* ========== 内容区域 ========== */
-.factor-detail-container .content-wrapper {
-  position: relative;
-  z-index: 10;
-  max-width: 1400px;
-  margin: 24px auto;
+.factor-detail-container .basic-info-card .info-content {
   display: flex;
   flex-direction: column;
-  padding: 24px 40px 40px;
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.8);
+  gap: 12px;
 }
 
-.factor-detail-container .loading-container {
+.factor-detail-container .basic-info-card .info-item {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.factor-detail-container .basic-info-card .info-item .label {
+  font-size: 13px;
+  color: #64748b;
+  font-weight: 500;
+  line-height: 1.5;
+}
+
+.factor-detail-container .basic-info-card .info-item .value {
+  font-size: 14px;
+  color: #0f172a;
+  line-height: 1.5;
+}
+
+.factor-detail-container .formula-card {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border: 1px solid rgba(59, 130, 246, 0.12) !important;
+  border-radius: 16px !important;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 2px 12px rgba(59, 130, 246, 0.06);
+}
+
+.factor-detail-container .formula-card .formula-header {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  min-height: 400px;
+  margin-bottom: 12px;
+}
+
+.factor-detail-container .formula-card .formula-header h3 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #0f172a;
   margin: 0;
 }
 
-.factor-detail-container .modules-container {
+/* ========== 右栏样式 ========== */
+.factor-detail-container .right-column {
   display: flex;
   flex-direction: column;
-  gap: 0;
+}
+
+.factor-detail-container .filter-card {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border: 1px solid rgba(59, 130, 246, 0.12) !important;
+  border-radius: 16px !important;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 2px 12px rgba(59, 130, 246, 0.06);
+}
+
+.factor-detail-container .analysis-tabs-card {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border: 1px solid rgba(59, 130, 246, 0.12) !important;
+  border-radius: 16px !important;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 2px 12px rgba(59, 130, 246, 0.06);
+  min-height: 500px;
+}
+
+.factor-detail-container .analysis-tabs-card .ant-tabs-nav {
+  margin-bottom: 16px;
+}
+
+.factor-detail-container .analysis-tabs-card .ant-tabs-tab {
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px 16px;
 }
 
 /* ========== 通用卡片样式 ========== */
+.factor-detail-container .ant-card-body {
+  padding: 20px;
+}
+
 .factor-detail-container .detail-card,
 .factor-detail-container .chart-card,
 .factor-detail-container .stats-card,
@@ -129,6 +166,47 @@
   backdrop-filter: blur(20px);
   box-shadow: 0 2px 12px rgba(59, 130, 246, 0.06);
   margin-bottom: 0;
+}
+
+/* ========== 统一卡片内文字样式 ========== */
+.factor-detail-container .ant-card-body .ant-statistic-title,
+.factor-detail-container .ant-card-body .ant-statistic-content,
+.factor-detail-container .ant-card-body .ant-statistic-content-value,
+.factor-detail-container .ant-card-body .ant-statistic-content-suffix,
+.factor-detail-container .ant-card-body .ant-statistic-content-prefix {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.factor-detail-container .ant-card-body .ant-statistic-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.factor-detail-container .ant-card-body .ant-statistic-content-value {
+  font-size: 20px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.factor-detail-container .ant-card-body .label,
+.factor-detail-container .ant-card-body .info-item .label,
+.factor-detail-container .ant-card-body .stat-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.factor-detail-container .ant-card-body .value,
+.factor-detail-container .ant-card-body .info-item .value,
+.factor-detail-container .ant-card-body .stat-value {
+  font-size: 14px;
+  font-weight: 400;
+  color: #0f172a;
+  line-height: 1.5;
 }
 
 .factor-detail-container .detail-header,
@@ -193,14 +271,14 @@
 .factor-detail-container .stat-card:hover {
   background: rgba(255, 255, 255, 0.9) !important;
   border-color: rgba(59, 130, 246, 0.25) !important;
-  transform: translateY(-4px);
-  box-shadow: 0 8px 24px rgba(59, 130, 246, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
 }
 
 /* ========== 分割线 ========== */
 .factor-detail-container .ant-divider {
   border-color: rgba(59, 130, 246, 0.1);
-  margin: 24px 0;
+  margin: 16px 0;
 }
 
 /* ========== 空状态 ========== */

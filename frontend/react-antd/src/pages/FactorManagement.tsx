@@ -391,7 +391,9 @@ const FactorManagement: React.FC = () => {
                   <Button
                     type="primary"
                     icon={<PlusOutlined />}
-                    onClick={() => setCreateModalVisible(true)}
+                    onClick={() => {
+                      setCreateModalVisible(true)
+                    }}
                   >
                     新增因子
                   </Button>
@@ -456,15 +458,6 @@ const FactorManagement: React.FC = () => {
           </Form.Item>
 
           <Form.Item
-            label="因子代码"
-            name="code"
-            rules={[{ required: true, message: '请输入因子代码' }]}
-            extra="支持 Python 表达式，可使用 close, open, high, low, volume 等字段"
-          >
-            <TextArea rows={4} placeholder="例如：RSI(close, 14)" className="font-mono" />
-          </Form.Item>
-
-          <Form.Item
             label="分类"
             name="category"
             rules={[{ required: true, message: '请选择分类' }]}
@@ -494,6 +487,29 @@ const FactorManagement: React.FC = () => {
               <Option value="expression">表达式</Option>
               <Option value="function">函数</Option>
             </Select>
+          </Form.Item>
+
+          <Form.Item
+            label="因子代码"
+            name="code"
+            rules={[{ required: true, message: '请输入因子代码' }]}
+            extra="支持 Python 表达式，可使用 close, open, high, low, volume 等字段"
+          >
+            <TextArea
+              rows={6}
+              placeholder="例如：RSI(close, 14)"
+              className="font-mono"
+              style={{
+                backgroundColor: '#f6f8fa',
+                fontSize: '14px',
+                fontFamily: 'Consolas, Monaco, monospace',
+                borderRadius: '6px',
+                padding: '12px',
+                minHeight: '150px',
+                maxHeight: '300px',
+                overflowY: 'auto'
+              }}
+            />
           </Form.Item>
 
           <Form.Item>

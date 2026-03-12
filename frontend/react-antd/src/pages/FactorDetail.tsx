@@ -15,14 +15,18 @@ import {
   DatePicker,
   Modal,
   Form,
-  Divider
+  Divider,
+  Tabs,
+  Progress
 } from 'antd'
 import {
   ArrowLeftOutlined,
   ReloadOutlined,
   LineChartOutlined,
   EditOutlined,
-  DeleteOutlined
+  DeleteOutlined,
+  ExperimentOutlined,
+  FundOutlined
 } from '@ant-design/icons'
 import * as echarts from 'echarts'
 import { api } from '@/services/api'
@@ -90,15 +94,44 @@ const FactorDetail: React.FC = () => {
   const [factorChartType, setFactorChartType] = useState<string>('line')
   const [loadingChart, setLoadingChart] = useState(false)
   const [stockCode, setStockCode] = useState<string>('000001.SZ')
+  // 用于显示的股票代码（不带后缀）
+  const [stockCodeDisplay, setStockCodeDisplay] = useState<string>(stockCode.replace(/\.(SH|SZ)$/, ''))
+
+  // 同步 stockCode 和 stockCodeDisplay 的状态
+  useEffect(() => {
+    setStockCodeDisplay(stockCode.replace(/\.(SH|SZ)$/, ''))
+  }, [stockCode])
   const [customStartDate, setCustomStartDate] = useState<string>('')
   const [customEndDate, setCustomEndDate] = useState<string>('')
   const [showCustomDatePicker, setShowCustomDatePicker] = useState(false)
+
+  // Tab 2-5 数据状态
+  const [exposureData, setExposureData] = useState<any>(null)
+  const [effectivenessData, setEffectivenessData] = useState<any>(null)
+  const [attributionData, setAttributionData] = useState<any>(null)
+  const [monitoringData, setMonitoringData] = useState<any>(null)
+  const [loadingAnalysisTabs, setLoadingAnalysisTabs] = useState(false)
+  const [activeTabKey, setActiveTabKey] = useState<string>('chart')
 
   // 图表容器引用
   const distributionChartRef = useRef<HTMLDivElement>(null)
   const icSeriesChartRef = useRef<HTMLDivElement>(null)
   const icHistogramChartRef = useRef<HTMLDivElement>(null)
   const priceChartRef = useRef<HTMLDivElement>(null)
+
+  // Tab 2-5 图表容器引用
+  const exposureHistogramRef = useRef<HTMLDivElement>(null)
+  const percentileTimeSeriesRef = useRef<HTMLDivElement>(null)
+  const scatterChartRef = useRef<HTMLDivElement>(null)
+  const icTimeSeriesChartRef = useRef<HTMLDivElement>(null)
+  const eventResponseChartRef = useRef<HTMLDivElement>(null)
+  const decayCurveChartRef = useRef<HTMLDivElement>(null)
+  const alphaBetaChartRef = useRef<HTMLDivElement>(null)
+  const returnDecompositionChartRef = useRef<HTMLDivElement>(null)
+  const rollingBandChartRef = useRef<HTMLDivElement>(null)
+  const transitionMatrixRef = useRef<HTMLDivElement>(null)
+  const structuralBreakChartRef = useRef<HTMLDivElement>(null)
+  const seasonalityChartRef = useRef<HTMLDivElement>(null)
 
   // 图表实例
   const chartsRef = useRef<Record<string, echarts.ECharts>>({})
@@ -185,6 +218,8 @@ const FactorDetail: React.FC = () => {
           }
         })
         message.success('因子分析完成')
+        // 同时加载 Tab 2-5 的数据
+        loadAnalysisTabsData()
       } else {
         message.error('因子分析失败：' + (response.message || '未知错误'))
       }
@@ -287,10 +322,12 @@ const FactorDetail: React.FC = () => {
       return null
     }
 
+    // 如果图表实例已存在，直接返回
     if (chartsRef.current[chartKey]) {
-      chartsRef.current[chartKey].dispose()
+      return chartsRef.current[chartKey]
     }
 
+    // 否则创建新的图表实例
     const myChart = echarts.init(chartDom)
     chartsRef.current[chartKey] = myChart
     return myChart
@@ -480,6 +517,928 @@ const FactorDetail: React.FC = () => {
     myChart.setOption(option)
   }, [analysisData])
 
+  // 绘制因子暴露度直方图
+  const drawExposureHistogram = useCallback(() => {
+    const chartDom = exposureHistogramRef.current
+    if (!chartDom || !exposureData) return
+
+    const myChart = initChart(chartDom, 'exposureHistogram')
+    if (!myChart) return
+
+    const histogram = exposureData.histogram || {}
+    const bins = histogram.bins || []
+    const counts = histogram.counts || []
+
+    // 计算区间中心点
+    const binCenters = bins.slice(0, -1).map((bin: number, i: number) => (bin + bins[i + 1]) / 2)
+
+    const option: echarts.EChartsOption = {
+      title: {
+        text: '因子值历史分布',
+        left: 'center',
+        textStyle: { fontSize: 16, fontWeight: 600 }
+      },
+      tooltip: {
+        trigger: 'axis',
+        formatter: (params: any) => {
+          if (!params || params.length === 0) return ''
+          const param = params[0]
+          const bin1 = parseFloat(bins[param.dataIndex])
+          const bin2 = parseFloat(bins[param.dataIndex + 1])
+          const range = `${isNaN(bin1) ? '-' : bin1.toFixed(4)} - ${isNaN(bin2) ? '-' : bin2.toFixed(4)}`
+          return `区间: [${range}]<br/>频次: ${param.value}`
+        }
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: binCenters,
+        name: '因子值',
+        axisLabel: {
+          formatter: (value: any) => {
+            const num = typeof value === 'number' ? value : parseFloat(value)
+            return isNaN(num) ? '-' : num.toFixed(2)
+          }
+        }
+      },
+      yAxis: {
+        type: 'value',
+        name: '频次'
+      },
+      series: [
+        {
+          name: '频次',
+          type: 'bar',
+          data: counts,
+          itemStyle: {
+            color: {
+              type: 'linear',
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+              colorStops: [
+                { offset: 0, color: 'rgba(59, 130, 246, 0.3)' },
+                { offset: 1, color: 'rgba(59, 130, 246, 0.8)' }
+              ]
+            },
+            borderRadius: [4, 4, 0, 0]
+          }
+        }
+      ]
+    }
+
+    myChart.setOption(option)
+  }, [exposureData])
+
+  // 绘制分位数时间序列曲线
+  const drawPercentileTimeSeries = useCallback(() => {
+    const chartDom = percentileTimeSeriesRef.current
+    if (!chartDom || !exposureData) return
+
+    const myChart = initChart(chartDom, 'percentileTimeSeries')
+    if (!myChart) return
+
+    const percentileSeries = exposureData.percentile_time_series || {}
+    const dates = percentileSeries.dates || []
+    const percentiles = percentileSeries.percentiles || []
+    const values = percentileSeries.values || []
+
+    const option: echarts.EChartsOption = {
+      title: {
+        text: '因子暴露度分位数变化',
+        left: 'center',
+        textStyle: { fontSize: 16, fontWeight: 600 }
+      },
+      tooltip: {
+        trigger: 'axis',
+        formatter: (params: any) => {
+          if (!params || params.length === 0) return ''
+          const param = params[0]
+          const date = dates[param.dataIndex] || '-'
+          const percentile = percentiles[param.dataIndex] || 0
+          const value = values[param.dataIndex] || 0
+          return `日期: ${date}<br/>分位数: ${percentile.toFixed(2)}%<br/>因子值: ${value}`
+        }
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '10%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: dates,
+        name: '日期',
+        axisLabel: {
+          formatter: (value: any) => {
+            // 显示年-月-日
+            const dateStr = String(value)
+            const parts = dateStr.split(' ')
+            if (parts.length > 0) {
+              const dateParts = parts[0].split('-')
+              if (dateParts.length >= 3) {
+                return `${dateParts[0]}-${dateParts[1]}-${dateParts[2]}`
+              }
+            }
+            return value
+          }
+        }
+      },
+      yAxis: {
+        type: 'value',
+        name: '分位数 (%)',
+        min: 0,
+        max: 100,
+        axisLabel: {
+          formatter: '{value}%'
+        },
+        splitLine: {
+          lineStyle: {
+            color: 'rgba(59, 130, 246, 0.1)'
+          }
+        }
+      },
+      dataZoom: [
+        {
+          type: 'inside',
+          start: 0,
+          end: 100
+        }
+      ],
+      series: [
+        {
+          name: '分位数',
+          type: 'line',
+          data: percentiles,
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 6,
+          lineStyle: {
+            width: 2,
+            color: '#3b82f6'
+          },
+          itemStyle: {
+            color: '#3b82f6'
+          },
+          areaStyle: {
+            color: {
+              type: 'linear',
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+              colorStops: [
+                { offset: 0, color: 'rgba(59, 130, 246, 0.3)' },
+                { offset: 1, color: 'rgba(59, 130, 246, 0.05)' }
+              ]
+            }
+          },
+          markLine: {
+            symbol: 'none',
+            label: {
+              show: true,
+              position: 'end',
+              formatter: '{b}: {c}%'
+            },
+            lineStyle: {
+              type: 'dashed',
+              color: '#ef4444'
+            },
+            data: [
+              { yAxis: 25, name: '低暴露' },
+              { yAxis: 50, name: '中位数', lineStyle: { color: '#eab308' } },
+              { yAxis: 75, name: '高暴露', lineStyle: { color: '#22c55e' } }
+            ]
+          }
+        }
+      ]
+    }
+
+    myChart.setOption(option)
+  }, [exposureData])
+
+  // 绘制因子-收益散点图
+  const drawScatterChart = useCallback(() => {
+    const chartDom = scatterChartRef.current
+    if (!chartDom || !effectivenessData) {
+      console.log('drawScatterChart: chartDom or effectivenessData is null', { chartDom, effectivenessData })
+      return
+    }
+
+    const myChart = initChart(chartDom, 'scatterChart')
+    if (!myChart) return
+
+    console.log('drawScatterChart: effectivenessData', effectivenessData)
+    const scatterData = effectivenessData.scatter_plot || {}
+    console.log('drawScatterChart: scatterData', scatterData)
+    const x = scatterData.x || []
+    const y = scatterData.y || []
+    const correlation = scatterData.correlation || 0
+    console.log('drawScatterChart: x, y lengths', { xLength: x.length, yLength: y.length })
+
+    const option: echarts.EChartsOption = {
+      title: {
+        text: '因子-收益散点图',
+        left: 'center',
+        textStyle: { fontSize: 16, fontWeight: 600 }
+      },
+      tooltip: {
+        trigger: 'item',
+        formatter: (params: any) => {
+          if (!params.data) return ''
+          return `因子值: ${params.data[0].toFixed(4)}<br/>收益率: ${(params.data[1] * 100).toFixed(2)}%`
+        }
+      },
+      grid: {
+        left: '10%',
+        right: '10%',
+        bottom: '10%',
+        top: '15%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'value',
+        name: '因子值',
+        scale: true,
+        splitLine: {
+          lineStyle: { color: 'rgba(59, 130, 246, 0.1)' }
+        }
+      },
+      yAxis: {
+        type: 'value',
+        name: '收益率',
+        scale: true,
+        axisLabel: {
+          formatter: (value: any) => `${(value * 100).toFixed(1)}%`
+        },
+        splitLine: {
+          lineStyle: { color: 'rgba(59, 130, 246, 0.1)' }
+        }
+      },
+      series: [
+        {
+          name: '数据点',
+          type: 'scatter',
+          data: x.map((xi: number, i: number) => [xi, y[i]]),
+          symbolSize: 6,
+          itemStyle: {
+            color: 'rgba(59, 130, 246, 0.6)',
+            borderColor: '#3b82f6',
+            borderWidth: 1
+          }
+        }
+      ]
+    }
+
+    myChart.setOption(option)
+  }, [effectivenessData])
+
+  // 绘制IC时序图
+  const drawICTimeSeriesChart = useCallback(() => {
+    const chartDom = icTimeSeriesChartRef.current
+    if (!chartDom || !effectivenessData) {
+      console.log('drawICTimeSeriesChart: chartDom or effectivenessData is null', { chartDom, effectivenessData })
+      return
+    }
+
+    const myChart = initChart(chartDom, 'icTimeSeries')
+    if (!myChart) return
+
+    console.log('drawICTimeSeriesChart: effectivenessData', effectivenessData)
+    const icData = effectivenessData.ic_time_series || {}
+    console.log('drawICTimeSeriesChart: icData', icData)
+    const dates = icData.dates || []
+    const icValues = icData.ic_values || []
+    const icMean = icData.ic_mean || 0
+    console.log('drawICTimeSeriesChart: dates, icValues lengths', { datesLength: dates.length, icValuesLength: icValues.length, icMean })
+
+    const option: echarts.EChartsOption = {
+      title: {
+        text: 'IC时序分析',
+        left: 'center',
+        textStyle: { fontSize: 16, fontWeight: 600 }
+      },
+      tooltip: {
+        trigger: 'axis',
+        formatter: (params: any) => {
+          if (!params || params.length === 0) return ''
+          const param = params[0]
+          return `日期: ${param.axisValue}<br/>IC: ${param.value.toFixed(4)}`
+        }
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '10%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: dates,
+        name: '日期',
+        axisLabel: {
+          formatter: (value: any) => {
+            const dateStr = String(value)
+            const parts = dateStr.split(' ')
+            if (parts.length > 0) {
+              const dateParts = parts[0].split('-')
+              if (dateParts.length >= 3) {
+                return `${dateParts[1]}-${dateParts[2]}`
+              }
+            }
+            return value
+          }
+        }
+      },
+      yAxis: {
+        type: 'value',
+        name: 'IC值',
+        axisLabel: {
+          formatter: (value: any) => value.toFixed(3)
+        },
+        splitLine: {
+          lineStyle: { color: 'rgba(59, 130, 246, 0.1)' }
+        }
+      },
+      dataZoom: [
+        {
+          type: 'inside',
+          start: 0,
+          end: 100
+        }
+      ],
+      series: [
+        {
+          name: 'IC',
+          type: 'line',
+          data: icValues,
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 4,
+          lineStyle: { width: 2, color: '#3b82f6' },
+          itemStyle: { color: '#3b82f6' },
+          markLine: {
+            symbol: 'none',
+            label: { show: true, position: 'end', formatter: `均值: ${icMean.toFixed(4)}` },
+            lineStyle: { type: 'dashed', color: '#ef4444' },
+            data: [{ yAxis: icMean }]
+          }
+        }
+      ]
+    }
+
+    myChart.setOption(option)
+  }, [effectivenessData])
+
+  // 绘制事件响应图
+  const drawEventResponseChart = useCallback(() => {
+    const chartDom = eventResponseChartRef.current
+    if (!chartDom || !effectivenessData) return
+
+    const myChart = initChart(chartDom, 'eventResponse')
+    if (!myChart) return
+
+    const eventData = effectivenessData.event_response || {}
+    const highReturns = eventData.high_exposure_returns || {}
+    const lowReturns = eventData.low_exposure_returns || {}
+    const periods = Object.keys(highReturns)
+
+    const option: echarts.EChartsOption = {
+      title: {
+        text: '事件响应分析（高/低暴露后收益）',
+        left: 'center',
+        textStyle: { fontSize: 16, fontWeight: 600 }
+      },
+      tooltip: {
+        trigger: 'axis',
+        formatter: (params: any) => {
+          if (!params || params.length === 0) return ''
+          let result = `${params[0].axisValue}<br/>`
+          params.forEach((param: any) => {
+            result += `${param.seriesName}: ${(param.value * 100).toFixed(2)}%<br/>`
+          })
+          return result
+        }
+      },
+      legend: {
+        data: ['高暴露收益', '低暴露收益', '超额收益'],
+        top: '8%'
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '10%',
+        top: '20%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: periods,
+        name: '持有期'
+      },
+      yAxis: {
+        type: 'value',
+        name: '收益率',
+        axisLabel: {
+          formatter: (value: any) => `${(value * 100).toFixed(1)}%`
+        },
+        splitLine: {
+          lineStyle: { color: 'rgba(59, 130, 246, 0.1)' }
+        }
+      },
+      series: [
+        {
+          name: '高暴露收益',
+          type: 'bar',
+          data: periods.map(p => highReturns[p] || 0),
+          itemStyle: { color: '#ef4444' }
+        },
+        {
+          name: '低暴露收益',
+          type: 'bar',
+          data: periods.map(p => lowReturns[p] || 0),
+          itemStyle: { color: '#22c55e' }
+        },
+        {
+          name: '超额收益',
+          type: 'line',
+          data: periods.map(p => (highReturns[p] || 0) - (lowReturns[p] || 0)),
+          itemStyle: { color: '#3b82f6' },
+          lineStyle: { width: 2 },
+          symbol: 'circle',
+          symbolSize: 6
+        }
+      ]
+    }
+
+    myChart.setOption(option)
+  }, [effectivenessData])
+
+  // 绘制因子衰减曲线
+  const drawDecayCurveChart = useCallback(() => {
+    const chartDom = decayCurveChartRef.current
+    if (!chartDom || !effectivenessData) return
+
+    const myChart = initChart(chartDom, 'decayCurve')
+    if (!myChart) return
+
+    const decayData = effectivenessData.decay_analysis || {}
+    const curve = decayData.decay_curve || []
+    const periods = curve.map((c: any) => c.period)
+    const icValues = curve.map((c: any) => c.ic)
+
+    const option: echarts.EChartsOption = {
+      title: {
+        text: '因子衰减曲线（IC vs 持有期）',
+        left: 'center',
+        textStyle: { fontSize: 16, fontWeight: 600 }
+      },
+      tooltip: {
+        trigger: 'axis',
+        formatter: (params: any) => {
+          if (!params || params.length === 0) return ''
+          const param = params[0]
+          return `持有期: ${param.name}<br/>IC: ${param.value.toFixed(4)}`
+        }
+      },
+      grid: {
+        left: '8%',
+        right: '4%',
+        bottom: '10%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: periods,
+        name: '持有期'
+      },
+      yAxis: {
+        type: 'value',
+        name: 'IC值',
+        axisLabel: {
+          formatter: (value: any) => value.toFixed(3)
+        },
+        splitLine: {
+          lineStyle: { color: 'rgba(59, 130, 246, 0.1)' }
+        }
+      },
+      series: [
+        {
+          name: 'IC',
+          type: 'line',
+          data: icValues,
+          smooth: true,
+          symbol: 'circle',
+          symbolSize: 8,
+          lineStyle: { width: 3, color: '#3b82f6' },
+          itemStyle: { color: '#3b82f6' },
+          areaStyle: {
+            color: {
+              type: 'linear',
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+              colorStops: [
+                { offset: 0, color: 'rgba(59, 130, 246, 0.3)' },
+                { offset: 1, color: 'rgba(59, 130, 246, 0.05)' }
+              ]
+            }
+          }
+        }
+      ]
+    }
+
+    myChart.setOption(option)
+  }, [effectivenessData])
+
+  // 绘制滚动窗口带状图
+  const drawRollingBandChart = useCallback(() => {
+    const chartDom = rollingBandChartRef.current
+    if (!chartDom || !monitoringData?.rolling_chart) return
+
+    const myChart = initChart(chartDom, 'rollingBand')
+    if (!myChart) return
+
+    const data = monitoringData.rolling_chart
+    const dates = data.dates || []
+    const values = data.values || []
+    const rollingMean = data.rolling_mean || []
+    const upperBand = data.upper_band || []
+    const lowerBand = data.lower_band || []
+
+    // 构建置信区间区域数据（使用多边形）
+    const areaData: (number | string)[][] = []
+    // 从左到右：上界线（从右到左）+ 下界线（从左到右）
+    for (let i = dates.length - 1; i >= 0; i--) {
+      if (upperBand[i] !== undefined && upperBand[i] !== null) {
+        areaData.push([dates[i], upperBand[i]])
+      }
+    }
+    for (let i = 0; i < dates.length; i++) {
+      if (lowerBand[i] !== undefined && lowerBand[i] !== null) {
+        areaData.push([dates[i], lowerBand[i]])
+      }
+    }
+
+    const option: echarts.EChartsOption = {
+      title: {
+        text: '因子值滚动窗口带状图',
+        left: 'center',
+        textStyle: { fontSize: 16, fontWeight: 600 }
+      },
+      tooltip: {
+        trigger: 'axis',
+        formatter: (params: any) => {
+          if (!params || params.length === 0) return ''
+          const date = params[0].axisValue
+          let result = `日期: ${date}<br/>`
+          params.forEach((param: any) => {
+            if (param.seriesName !== '置信区间') {
+              result += `${param.seriesName}: ${param.value?.toFixed(4) ?? '-'}<br/>`
+            }
+          })
+          // 添加置信区间信息
+          const idx = dates.indexOf(params[0].axisValue)
+          if (idx >= 0) {
+            const lower = lowerBand[idx]
+            const upper = upperBand[idx]
+            if (lower !== undefined && upper !== undefined && lower !== null && upper !== null) {
+              result += `置信区间: [${lower.toFixed(4)}, ${upper.toFixed(4)}]`
+            }
+          }
+          return result
+        }
+      },
+      legend: {
+        data: ['因子值', '滚动均值', '上界', '下界'],
+        bottom: 0
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '10%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: dates,
+        axisLabel: {
+          formatter: (value: string) => value.substring(0, 10)
+        },
+        boundaryGap: false
+      },
+      yAxis: {
+        type: 'value',
+        name: '因子值'
+      },
+      dataZoom: [
+        { type: 'inside', start: 0, end: 100 }
+      ],
+      series: [
+        {
+          name: '置信区间',
+          type: 'line',
+          data: areaData,
+          lineStyle: { width: 0 },
+          areaStyle: {
+            color: 'rgba(239, 68, 68, 0.12)'
+          },
+          showSymbol: false,
+          tooltip: { show: false },
+          z: 0
+        },
+        {
+          name: '因子值',
+          type: 'line',
+          data: values,
+          lineStyle: { width: 1.5, color: '#64748b' },
+          symbol: 'none',
+          z: 1
+        },
+        {
+          name: '滚动均值',
+          type: 'line',
+          data: rollingMean,
+          lineStyle: { width: 2.5, color: '#3b82f6' },
+          symbol: 'none',
+          z: 2
+        },
+        {
+          name: '上界',
+          type: 'line',
+          data: upperBand,
+          lineStyle: { width: 1, color: '#ef4444', type: 'dashed' },
+          symbol: 'none',
+          z: 1
+        },
+        {
+          name: '下界',
+          type: 'line',
+          data: lowerBand,
+          lineStyle: { width: 1, color: '#ef4444', type: 'dashed' },
+          symbol: 'none',
+          z: 1
+        }
+      ]
+    }
+
+    myChart.setOption(option)
+  }, [monitoringData])
+
+  // 绘制暴露度转移矩阵热力图
+  const drawTransitionMatrix = useCallback(() => {
+    const chartDom = transitionMatrixRef.current
+    if (!chartDom || !monitoringData?.transition_matrix) return
+
+    const myChart = initChart(chartDom, 'transitionMatrix')
+    if (!myChart) return
+
+    const data = monitoringData.transition_matrix
+    const matrix = data.matrix || []
+    const binLabels = data.bin_labels || []
+
+    // 转换矩阵数据为热力图格式
+    const heatmapData: [number, number, number][] = []
+    matrix.forEach((row: number[], i: number) => {
+      row.forEach((value: number, j: number) => {
+        heatmapData.push([i, j, value])
+      })
+    })
+
+    const option: echarts.EChartsOption = {
+      title: {
+        text: '暴露度转移概率矩阵',
+        left: 'center',
+        textStyle: { fontSize: 14, fontWeight: 600 }
+      },
+      tooltip: {
+        position: 'top',
+        formatter: (params: any) => {
+          if (!params || params.data === undefined) return ''
+          const [from, to, prob] = params.data as [number, number, number]
+          return `从 ${binLabels[from]} 到 ${binLabels[to]}<br/>转移概率: ${(prob * 100).toFixed(2)}%`
+        }
+      },
+      grid: {
+        height: '70%',
+        top: '15%'
+      },
+      xAxis: {
+        type: 'category',
+        data: binLabels,
+        splitArea: { show: true }
+      },
+      yAxis: {
+        type: 'category',
+        data: binLabels,
+        splitArea: { show: true }
+      },
+      visualMap: {
+        min: 0,
+        max: 1,
+        calculable: true,
+        orient: 'horizontal',
+        left: 'center',
+        bottom: '0%',
+        inRange: {
+          color: ['#e0f2fe', '#0369a1']
+        }
+      },
+      series: [
+        {
+          name: '转移概率',
+          type: 'heatmap',
+          data: heatmapData,
+          label: {
+            show: true,
+            formatter: (params: any) => {
+              return (params.data[2] * 100).toFixed(1) + '%'
+            }
+          },
+          emphasis: {
+            itemStyle: {
+              shadowBlur: 10,
+              shadowColor: 'rgba(0, 0, 0, 0.5)'
+            }
+          }
+        }
+      ]
+    }
+
+    myChart.setOption(option)
+  }, [monitoringData])
+
+  // 绘制结构断点检测图
+  const drawStructuralBreakChart = useCallback(() => {
+    const chartDom = structuralBreakChartRef.current
+    if (!chartDom || !monitoringData?.structural_break || !monitoringData?.rolling_chart) return
+
+    const myChart = initChart(chartDom, 'structuralBreak')
+    if (!myChart) return
+
+    const rollingData = monitoringData.rolling_chart
+    const breakData = monitoringData.structural_break
+
+    const dates = rollingData.dates || []
+    const values = rollingData.values || []
+    const breakpoints = breakData.breakpoints || []
+
+    // 标记断点位置
+    const markPointData = breakpoints.map((bp: string) => {
+      const idx = dates.indexOf(bp)
+      if (idx >= 0) {
+        return {
+          coord: [bp, values[idx]],
+          value: '断点',
+          itemStyle: { color: '#ef4444' }
+        }
+      }
+      return null
+    }).filter(Boolean)
+
+    const option: echarts.EChartsOption = {
+      title: {
+        text: '因子值与结构断点',
+        left: 'center',
+        textStyle: { fontSize: 14, fontWeight: 600 }
+      },
+      tooltip: {
+        trigger: 'axis'
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: dates,
+        axisLabel: {
+          formatter: (value: string) => value.substring(0, 10)
+        }
+      },
+      yAxis: {
+        type: 'value',
+        name: '因子值'
+      },
+      dataZoom: [
+        { type: 'inside', start: 0, end: 100 }
+      ],
+      series: [
+        {
+          name: '因子值',
+          type: 'line',
+          data: values,
+          lineStyle: { width: 2 },
+          symbol: 'none',
+          markPoint: {
+            data: markPointData,
+            symbolSize: 40
+          }
+        }
+      ]
+    }
+
+    myChart.setOption(option)
+  }, [monitoringData])
+
+  // 绘制周期性分析图
+  const drawSeasonalityChart = useCallback(() => {
+    const chartDom = seasonalityChartRef.current
+    if (!chartDom || !monitoringData?.seasonality) return
+
+    const myChart = initChart(chartDom, 'seasonality')
+    if (!myChart) return
+
+    const data = monitoringData.seasonality
+    const frequencies = data.frequencies || []
+    const powers = data.powers || []
+
+    // 只显示前半部分的频率（正频率）
+    const halfLen = Math.ceil(frequencies.length / 2)
+    const displayFreqs = frequencies.slice(0, halfLen)
+    const displayPowers = powers.slice(0, halfLen)
+
+    // 转换频率为周期（天数）
+    const periods = displayFreqs.map((f: number) => (f > 0 ? 1 / f : 0))
+
+    const option: echarts.EChartsOption = {
+      title: {
+        text: '功率谱（频域分析）',
+        left: 'center',
+        textStyle: { fontSize: 14, fontWeight: 600 }
+      },
+      tooltip: {
+        trigger: 'axis',
+        formatter: (params: any) => {
+          if (!params || params.length === 0) return ''
+          const param = params[0]
+          const freq = parseFloat(param.axisValue)
+          const freqStr = isNaN(freq) ? '-' : freq.toFixed(4)
+          const period = freq > 0 ? (1 / freq).toFixed(1) : '∞'
+          const power = param.value !== undefined && param.value !== null ? parseFloat(param.value).toFixed(2) : '-'
+          return `频率: ${freqStr}<br/>周期: ${period} 天<br/>功率: ${power}`
+        }
+      },
+      grid: {
+        left: '3%',
+        right: '4%',
+        bottom: '3%',
+        containLabel: true
+      },
+      xAxis: {
+        type: 'category',
+        data: displayFreqs,
+        name: '频率',
+        axisLabel: {
+          formatter: (value: any) => {
+            const num = parseFloat(value)
+            return isNaN(num) ? '-' : num.toFixed(4)
+          }
+        }
+      },
+      yAxis: {
+        type: 'value',
+        name: '功率'
+      },
+      dataZoom: [
+        { type: 'inside', start: 0, end: 50 }
+      ],
+      series: [
+        {
+          name: '功率',
+          type: 'bar',
+          data: displayPowers,
+          itemStyle: {
+            color: {
+              type: 'linear',
+              x: 0,
+              y: 0,
+              x2: 0,
+              y2: 1,
+              colorStops: [
+                { offset: 0, color: 'rgba(99, 102, 241, 0.3)' },
+                { offset: 1, color: 'rgba(99, 102, 241, 0.9)' }
+              ]
+            },
+            borderRadius: [2, 2, 0, 0]
+          }
+        }
+      ]
+    }
+
+    myChart.setOption(option)
+  }, [monitoringData])
+
   // 获取开始日期
   const getStartDateByPeriod = (period: string): string => {
     const now = new Date()
@@ -510,17 +1469,23 @@ const FactorDetail: React.FC = () => {
 
   // 处理股票代码变化
   const handleStockCodeChange = (value: string) => {
-    if (value && !value.includes('.')) {
-      if (value.startsWith('6')) {
-        setStockCode(value + '.SH')
-      } else if (value.startsWith('0') || value.startsWith('3')) {
-        setStockCode(value + '.SZ')
+    // 移除可能存在的后缀
+    const cleanCode = value.replace(/\.(SH|SZ)$/, '')
+
+    // 自动补全后缀
+    let fullCode = cleanCode
+    if (cleanCode && !cleanCode.includes('.')) {
+      if (cleanCode.startsWith('6')) {
+        fullCode = cleanCode + '.SH'
+      } else if (cleanCode.startsWith('0') || cleanCode.startsWith('3')) {
+        fullCode = cleanCode + '.SZ'
       } else {
-        setStockCode(value)
+        fullCode = cleanCode
       }
-    } else {
-      setStockCode(value)
     }
+
+    setStockCode(fullCode)
+    setStockCodeDisplay(cleanCode)
   }
 
   // 处理自定义日期变化
@@ -612,11 +1577,91 @@ const FactorDetail: React.FC = () => {
     }
   }, [factor, chartPeriod, stockCode, customStartDate, customEndDate])
 
+  // 加载所有分析 Tab 数据（Tab 2-5）
+  const loadAnalysisTabsData = useCallback(async () => {
+    if (!factor) return
+
+    let startDate: string
+    let endDate: string
+
+    if (chartPeriod === 'custom') {
+      if (!customStartDate || !customEndDate) {
+        message.warning('请选择自定义日期范围')
+        return
+      }
+      startDate = customStartDate
+      endDate = customEndDate
+    } else {
+      endDate = new Date().toISOString().split('T')[0]
+      startDate = getStartDateByPeriod(chartPeriod)
+    }
+
+    setLoadingAnalysisTabs(true)
+    try {
+      // 并行加载所有分析数据
+      const [exposure, effectiveness, attribution, monitoring] = await Promise.all([
+        api.analyzeExposure({
+          factor_name: factor.name,
+          stock_codes: [stockCode],
+          start_date: startDate,
+          end_date: endDate
+        } as any),
+        api.analyzeEffectiveness({
+          factor_name: factor.name,
+          stock_codes: [stockCode],
+          start_date: startDate,
+          end_date: endDate
+        } as any),
+        api.analyzeAttribution({
+          factor_name: factor.name,
+          stock_codes: [stockCode],
+          start_date: startDate,
+          end_date: endDate
+        } as any),
+        api.analyzeMonitoring({
+          factor_name: factor.name,
+          stock_codes: [stockCode],
+          start_date: startDate,
+          end_date: endDate
+        } as any)
+      ])
+
+      console.log('API responses:', { exposure, effectiveness, attribution, monitoring })
+
+      if (exposure && (exposure as any).success) {
+        setExposureData((exposure as any).data)
+        console.log('exposureData set:', (exposure as any).data)
+      }
+      if (effectiveness && (effectiveness as any).success) {
+        setEffectivenessData((effectiveness as any).data)
+        console.log('effectivenessData set:', (effectiveness as any).data)
+      }
+      if (attribution && (attribution as any).success) {
+        setAttributionData((attribution as any).data)
+        console.log('attributionData set:', (attribution as any).data)
+      }
+      if (monitoring && (monitoring as any).success) {
+        setMonitoringData((monitoring as any).data)
+        console.log('monitoringData set:', (monitoring as any).data)
+      }
+
+      message.success('分析数据加载完成')
+    } catch (error) {
+      console.error('加载分析数据失败:', error)
+      message.error('加载分析数据失败')
+    } finally {
+      setLoadingAnalysisTabs(false)
+    }
+  }, [factor, chartPeriod, stockCode, customStartDate, customEndDate])
+
   // 绘制行情图表
   const drawPriceChart = useCallback(() => {
     const chartDom = priceChartRef.current
     const myChart = initChart(chartDom, 'price')
     if (!myChart || !chartData) return
+
+    // 清除之前的图表配置，防止图表类型切换时出现异常
+    myChart.clear()
 
     const { stock, factor } = chartData
 
@@ -709,14 +1754,6 @@ const FactorDetail: React.FC = () => {
             type: 'inside',
             start: 0,
             end: 100
-          },
-          {
-            type: 'slider',
-            show: true,
-            start: 0,
-            end: 100,
-            height: 20,
-            bottom: 10
           }
         ],
         series: [
@@ -750,7 +1787,7 @@ const FactorDetail: React.FC = () => {
         ]
       }
 
-      myChart.setOption(option)
+      myChart.setOption(option, true)
       return
     }
 
@@ -828,14 +1865,6 @@ const FactorDetail: React.FC = () => {
             type: 'inside',
             start: 0,
             end: 100
-          },
-          {
-            type: 'slider',
-            show: true,
-            start: 0,
-            end: 100,
-            height: 20,
-            bottom: 10
           }
         ],
         series: [
@@ -980,15 +2009,6 @@ const FactorDetail: React.FC = () => {
           xAxisIndex: [0, 1],
           start: 0,
           end: 100
-        },
-        {
-          type: 'slider',
-          show: true,
-          xAxisIndex: [0, 1],
-          start: 0,
-          end: 100,
-          height: 20,
-          bottom: 10
         }
       ],
       series: [
@@ -1030,7 +2050,7 @@ const FactorDetail: React.FC = () => {
       ]
     }
 
-    myChart.setOption(option)
+    myChart.setOption(option, true)
   }, [chartData, factorChartType])
 
   // 获取IC统计数据
@@ -1055,13 +2075,13 @@ const FactorDetail: React.FC = () => {
     loadFactorDetail()
   }, [loadFactorDetail])
 
-  // 页面加载完成后加载行情图表并滚动到顶部
+  // 页面加载完成后滚动到顶部，并自动加载行情图表
   useEffect(() => {
     if (factor) {
-      loadChartData()
       window.scrollTo({ top: 0, behavior: 'smooth' })
+      loadChartData()
     }
-  }, [factor, loadChartData])
+  }, [factor])
 
   // 图表绘制
   useEffect(() => {
@@ -1073,6 +2093,66 @@ const FactorDetail: React.FC = () => {
       }, 100)
     }
   }, [analysisData, drawDistributionChart, drawICSeriesChart, drawICHistogramChart])
+
+  // 监控effectivenessData变化（调试用）
+  useEffect(() => {
+    console.log('effectivenessData changed:', effectivenessData)
+  }, [effectivenessData])
+
+  // 分析 Tab 图表绘制（Tab 2-5）
+  useEffect(() => {
+    if (exposureData) {
+      setTimeout(() => {
+        drawExposureHistogram()
+        drawPercentileTimeSeries()
+      }, 100)
+    }
+    if (effectivenessData) {
+      setTimeout(() => {
+        drawScatterChart()
+        drawICTimeSeriesChart()
+        drawEventResponseChart()
+        drawDecayCurveChart()
+      }, 100)
+    }
+    if (monitoringData) {
+      setTimeout(() => {
+        drawRollingBandChart()
+        drawTransitionMatrix()
+        drawStructuralBreakChart()
+        drawSeasonalityChart()
+      }, 100)
+    }
+  }, [exposureData, effectivenessData, monitoringData, drawExposureHistogram, drawPercentileTimeSeries, drawScatterChart, drawICTimeSeriesChart, drawEventResponseChart, drawDecayCurveChart, drawRollingBandChart, drawTransitionMatrix, drawStructuralBreakChart, drawSeasonalityChart])
+
+  // Tab 切换时重新绘制图表（确保图表容器已渲染）
+  useEffect(() => {
+    const redrawTimer = setTimeout(() => {
+      if (activeTabKey === 'exposure' && exposureData) {
+        drawExposureHistogram()
+        drawPercentileTimeSeries()
+      } else if (activeTabKey === 'effectiveness' && effectivenessData) {
+        // 更长的延迟确保DOM完全渲染
+        setTimeout(() => {
+          drawScatterChart()
+          drawICTimeSeriesChart()
+          drawEventResponseChart()
+          drawDecayCurveChart()
+        }, 100)
+      } else if (activeTabKey === 'attribution' && attributionData) {
+        // Tab 4 是纯数据展示，不需要重绘图表
+      } else if (activeTabKey === 'monitoring' && monitoringData) {
+        drawRollingBandChart()
+        drawTransitionMatrix()
+        drawStructuralBreakChart()
+        drawSeasonalityChart()
+      } else if (activeTabKey === 'chart' && chartData) {
+        drawPriceChart()
+      }
+    }, 200) // 增加延迟确保 Tab 切换动画完成
+
+    return () => clearTimeout(redrawTimer)
+  }, [activeTabKey, exposureData, monitoringData, effectivenessData, attributionData, chartData, drawExposureHistogram, drawPercentileTimeSeries, drawScatterChart, drawICTimeSeriesChart, drawEventResponseChart, drawDecayCurveChart, drawRollingBandChart, drawTransitionMatrix, drawStructuralBreakChart, drawSeasonalityChart, drawPriceChart])
 
   // 行情图表数据变化时重绘
   useEffect(() => {
@@ -1117,261 +2197,753 @@ const FactorDetail: React.FC = () => {
       <div className="bg-gradient"></div>
       <div className="bg-grid"></div>
 
-      {/* 顶部基本信息模块 */}
-      <div className="page-header">
-        <div className="header-content">
-          <div className="header-title">
-            <h1 className="page-title">{factor?.name || '因子详情'}</h1>
-            <p className="page-subtitle">{factor?.description || '因子分析与可视化'}</p>
-            {factor && (
-              <div className="header-meta">
-                <Space size="middle" wrap>
-                  <Tag color="blue">{factor.category}</Tag>
-                  <Tag color={factor.source === 'preset' ? 'success' : 'warning'}>
-                    {factor.source === 'preset' ? '预置' : '自定义'}
-                  </Tag>
-                  <span className="meta-item">创建时间: {formatDateTime(factor.created_at)}</span>
-                  {factor.updated_at && factor.updated_at !== factor.created_at && (
-                    <span className="meta-item">更新时间: {formatDateTime(factor.updated_at)}</span>
-                  )}
-                </Space>
-              </div>
-            )}
-          </div>
-          <Space size="middle">
-            <Button
-              icon={<ArrowLeftOutlined />}
-              onClick={() => navigate('/factor-management')}
-            >
-              返回
-            </Button>
-            <Button
-              type="primary"
-              icon={<LineChartOutlined />}
-              onClick={analyzeFactor}
-              loading={analyzing}
-            >
-              分析因子
-            </Button>
-            {factor && factor.source === 'user' && (
-              <>
-                <Button
-                  icon={<EditOutlined />}
-                  onClick={handleEdit}
-                >
-                  编辑
-                </Button>
-                <Button
-                  danger
-                  icon={<DeleteOutlined />}
-                  onClick={handleDeleteFactor}
-                >
-                  删除
-                </Button>
-              </>
-            )}
-          </Space>
-        </div>
-      </div>
-
-      {/* 主内容区域 */}
-      <div className="content-wrapper">
+      {/* 主内容区域 - 左右分栏布局 */}
+      <Row gutter={[24, 24]} className="factor-detail-content">
         {loading ? (
-          <div className="loading-container">
-            <Spin size="large" tip="加载中..." />
-          </div>
-        ) : factor ? (
-          <div className="modules-container">
-            {/* 详情信息模块 - 因子公式卡片 */}
-            <Card className="detail-card" bordered={false}>
-              <div className="detail-header">
-                <h3 className="detail-title">因子公式</h3>
-                {factor.source === 'user' && (
-                  <Button
-                    type="link"
-                    icon={<EditOutlined />}
-                    onClick={handleEdit}
-                  >
-                    编辑
-                  </Button>
-                )}
-              </div>
-              <pre className="formula-code">{factor.code}</pre>
+          <Col span={24}>
+            <div className="loading-container">
+              <Spin size="large" tip="加载中..." />
+            </div>
+          </Col>
+        ) : !factor ? (
+          <Col span={24}>
+            <Card className="empty-card" bordered={false}>
+              <p>{id ? '因子不存在或已被删除' : '未指定因子ID'}</p>
+              <Button type="primary" onClick={() => navigate('/factor-management')} style={{ marginTop: '16px' }}>
+                返回因子列表
+              </Button>
             </Card>
-
-            <Divider />
-
-            {/* 行情图表模块 */}
-            <Card className="chart-card" bordered={false}>
-              <div className="chart-header">
-                <h3 className="chart-title">行情图表</h3>
-                <Space wrap>
-                  <Input
-                    placeholder="股票代码"
-                    value={stockCode}
-                    onChange={(e) => handleStockCodeChange(e.target.value)}
-                    style={{ width: 120 }}
-                    onPressEnter={() => loadChartData()}
-                  />
-                  <Select
-                    value={chartPeriod}
-                    onChange={(value) => {
-                      setChartPeriod(value)
-                      if (value === 'custom') {
-                        setShowCustomDatePicker(true)
-                      }
-                    }}
-                    style={{ width: 120 }}
-                  >
-                    <Option value="1y">近1年</Option>
-                    <Option value="3y">近3年</Option>
-                    <Option value="custom">自定义</Option>
-                  </Select>
-                  {showCustomDatePicker && (
-                    <RangePicker
-                      value={customStartDate && customEndDate ? [dayjs(customStartDate), dayjs(customEndDate)] : null}
-                      onChange={handleCustomDateChange}
-                      format="YYYY-MM-DD"
-                    />
-                  )}
-                  <Select
-                    value={factorChartType}
-                    onChange={(value) => setFactorChartType(value)}
-                    style={{ width: 140 }}
-                  >
-                    <Option value="overlay">双轴同图</Option>
-                    <Option value="normalized">单轴归一化</Option>
-                    <Option value="line">折线图</Option>
-                    <Option value="bar">柱状图</Option>
-                    <Option value="area">面积图</Option>
-                  </Select>
-                  <Button
-                    icon={<ReloadOutlined />}
-                    size="small"
-                    onClick={loadChartData}
-                    loading={loadingChart}
-                  >
-                    刷新
-                  </Button>
-                </Space>
-              </div>
-              <div ref={priceChartRef} className="chart-container large"></div>
-            </Card>
-
-            <Divider />
-
-            {/* 因子分析指标信息 */}
-            {icStats && (
-              <>
-                <Card className="stats-card" bordered={false}>
-                  <h3 className="chart-title">因子分析指标</h3>
-                  <Row gutter={[16, 16]}>
-                    <Col xs={12} sm={8} md={4}>
-                      <Card className="stat-card">
-                        <Statistic
-                          title="IC均值"
-                          value={icStats['IC均值'] ?? '-'}
-                          precision={icStats['IC均值'] !== undefined ? 4 : undefined}
-                          valueStyle={{
-                            color: (icStats['IC均值'] || 0) > 0 ? '#ef4444' : '#22c55e',
-                            fontSize: '24px',
-                            fontWeight: 'bold'
-                          }}
-                        />
-                      </Card>
-                    </Col>
-                    <Col xs={12} sm={8} md={4}>
-                      <Card className="stat-card">
-                        <Statistic
-                          title="IC标准差"
-                          value={icStats['IC标准差'] ?? '-'}
-                          precision={icStats['IC标准差'] !== undefined ? 4 : undefined}
-                        />
-                      </Card>
-                    </Col>
-                    <Col xs={12} sm={8} md={4}>
-                      <Card className="stat-card">
-                        <Statistic
-                          title="IR比率"
-                          value={icStats['IR'] ?? '-'}
-                          precision={icStats['IR'] !== undefined ? 4 : undefined}
-                          valueStyle={{ color: '#22c55e' }}
-                        />
-                      </Card>
-                    </Col>
-                    <Col xs={12} sm={8} md={4}>
-                      <Card className="stat-card">
-                        <Statistic
-                          title="IC>0比例"
-                          value={icStats['IC>0占比'] ?? '-'}
-                          precision={icStats['IC>0占比'] !== undefined ? 2 : undefined}
-                          suffix={icStats['IC>0占比'] !== undefined ? '%' : ''}
-                        />
-                      </Card>
-                    </Col>
-                    <Col xs={12} sm={8} md={4}>
-                      <Card className="stat-card">
-                        <Statistic
-                          title="数据有效率"
-                          value={icStats ? '100' : '-'}
-                          suffix={icStats ? '%' : ''}
-                        />
-                      </Card>
-                    </Col>
-                    <Col xs={12} sm={8} md={4}>
-                      <Card className="stat-card">
-                        <Statistic
-                          title="数据点数"
-                          value={icStats ? Object.keys(icStats['IC序列'] || {}).length : '-'}
-                        />
-                      </Card>
-                    </Col>
-                  </Row>
-                </Card>
-
-                <Divider />
-
-                {/* 因子分布柱状图 */}
-                <Card className="chart-card" bordered={false}>
-                  <h3 className="chart-title">因子分布柱状图</h3>
-                  <div ref={distributionChartRef} className="chart-container"></div>
-                </Card>
-
-                <Divider />
-
-                {/* IC序列 */}
-                <Card className="chart-card" bordered={false}>
-                  <h3 className="chart-title">IC序列</h3>
-                  <div ref={icSeriesChartRef} className="chart-container"></div>
-                </Card>
-
-                <Divider />
-
-                {/* IC分布直方图 */}
-                <Card className="chart-card" bordered={false}>
-                  <h3 className="chart-title">IC分布直方图</h3>
-                  <div ref={icHistogramChartRef} className="chart-container"></div>
-                </Card>
-              </>
-            )}
-
-            {!icStats && (
-              <Card className="empty-card" bordered={false}>
-                <p style={{ color: '#64748b', margin: 0, textAlign: 'center' }}>
-                  请点击上方"分析因子"按钮进行因子分析
-                </p>
-              </Card>
-            )}
-          </div>
+          </Col>
         ) : (
-          <Card className="empty-card" bordered={false}>
-            <p>{id ? '因子不存在或已被删除' : '未指定因子ID'}</p>
-            <Button type="primary" onClick={() => navigate('/factor-management')} style={{ marginTop: '16px' }}>
-              返回因子列表
-            </Button>
-          </Card>
+          <>
+            {/* 左栏 - 基本信息和因子公式 */}
+            <Col xs={24} lg={6} className="left-column">
+              {/* 基本信息卡片 */}
+              <Card className="basic-info-card" bordered={false}>
+                <div className="info-header">
+                  <h2 className="factor-title">{factor.name}</h2>
+                  <Space direction="vertical" size="small" style={{ width: '100%' }}>
+                    <Button
+                      icon={<ArrowLeftOutlined />}
+                      onClick={() => navigate('/factor-management')}
+                      block
+                    >
+                      返回
+                    </Button>
+                    {factor.source === 'user' && (
+                      <>
+                        <Button
+                          icon={<EditOutlined />}
+                          onClick={handleEdit}
+                          block
+                        >
+                          编辑
+                        </Button>
+                        <Button
+                          danger
+                          icon={<DeleteOutlined />}
+                          onClick={handleDeleteFactor}
+                          block
+                        >
+                          删除
+                        </Button>
+                      </>
+                    )}
+                  </Space>
+                </div>
+                <Divider />
+                <div className="info-content">
+                  <div className="info-item">
+                    <span className="label">因子描述:</span>
+                    <span className="value">{factor.description || '-'}</span>
+                  </div>
+                  <div className="info-item">
+                    <span className="label">分类标签:</span>
+                    <div className="value"><Tag color="blue">{factor.category}</Tag></div>
+                  </div>
+                  <div className="info-item">
+                    <span className="label">来源:</span>
+                    <div className="value">
+                      <Tag color={factor.source === 'preset' ? 'success' : 'warning'}>
+                        {factor.source === 'preset' ? '预置' : '自定义'}
+                      </Tag>
+                    </div>
+                  </div>
+                  <div className="info-item">
+                    <span className="label">创建时间:</span>
+                    <span className="value">{formatDateTime(factor.created_at)}</span>
+                  </div>
+                  {factor.updated_at && factor.updated_at !== factor.created_at && (
+                    <div className="info-item">
+                      <span className="label">更新时间:</span>
+                      <span className="value">{formatDateTime(factor.updated_at)}</span>
+                    </div>
+                  )}
+                </div>
+              </Card>
+
+              {/* 因子公式卡片 */}
+              <Card className="formula-card" bordered={false} style={{ marginTop: '16px' }}>
+                <div className="formula-header">
+                  <h3>因子公式</h3>
+                  {factor.source === 'user' && (
+                    <Button
+                      type="link"
+                      icon={<EditOutlined />}
+                      onClick={handleEdit}
+                    >
+                      编辑
+                    </Button>
+                  )}
+                </div>
+                <pre className="formula-code">{factor.code}</pre>
+              </Card>
+            </Col>
+
+            {/* 右栏 - 数据筛选和分析Tab */}
+            <Col xs={24} lg={18} className="right-column">
+              {/* 数据筛选卡片 */}
+              <Card className="filter-card" bordered={false}>
+                <Row gutter={[16, 16]} align="middle">
+                  <Col xs={24} sm={8}>
+                    <Input
+                      placeholder="股票代码"
+                      value={stockCodeDisplay}
+                      onChange={(e) => handleStockCodeChange(e.target.value)}
+                      onPressEnter={analyzeFactor}
+                    />
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    <Select
+                      value={chartPeriod}
+                      onChange={(value) => {
+                        setChartPeriod(value)
+                        if (value === 'custom') {
+                          setShowCustomDatePicker(true)
+                        }
+                      }}
+                      style={{ width: '100%' }}
+                    >
+                      <Option value="1y">近1年</Option>
+                      <Option value="3y">近3年</Option>
+                      <Option value="custom">自定义</Option>
+                    </Select>
+                  </Col>
+                  <Col xs={24} sm={8}>
+                    {showCustomDatePicker ? (
+                      <RangePicker
+                        value={customStartDate && customEndDate ? [dayjs(customStartDate), dayjs(customEndDate)] : null}
+                        onChange={handleCustomDateChange}
+                        format="YYYY-MM-DD"
+                        style={{ width: '100%' }}
+                      />
+                    ) : (
+                      <Button
+                        type="primary"
+                        block
+                        icon={<LineChartOutlined />}
+                        onClick={analyzeFactor}
+                        loading={analyzing}
+                      >
+                        分析因子
+                      </Button>
+                    )}
+                  </Col>
+                </Row>
+              </Card>
+
+              {/* 分析Tab页 */}
+              <Card className="analysis-tabs-card" bordered={false} style={{ marginTop: '16px' }}>
+                <Tabs activeKey={activeTabKey} onChange={setActiveTabKey}>
+                  <Tabs.TabPane tab="行情图表" key="chart">
+                    {/* 图表类型选择 */}
+                    <div style={{ marginBottom: '16px' }}>
+                      <Space>
+                    <Select
+                      value={factorChartType}
+                      onChange={(value) => setFactorChartType(value)}
+                      style={{ width: 140 }}
+                    >
+                      <Option value="overlay">双轴同图</Option>
+                      <Option value="normalized">单轴归一化</Option>
+                      <Option value="line">折线图</Option>
+                      <Option value="bar">柱状图</Option>
+                      <Option value="area">面积图</Option>
+                    </Select>
+                    <Button
+                      icon={<ReloadOutlined />}
+                      size="small"
+                      onClick={loadChartData}
+                      loading={loadingChart}
+                    >
+                      刷新
+                    </Button>
+                      </Space>
+                    </div>
+                    <div ref={priceChartRef} className="chart-container large"></div>
+                  </Tabs.TabPane>
+
+                  <Tabs.TabPane tab="因子暴露度" key="exposure">
+                    {!exposureData ? (
+                      <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
+                        <LineChartOutlined style={{ fontSize: '48px', marginBottom: '16px' }} />
+                        <p>{loadingAnalysisTabs ? '加载中...' : '请先点击"分析因子"按钮进行因子分析'}</p>
+                      </div>
+                    ) : (
+                      <>
+                        {/* 迷你数据卡片 */}
+                        <Card className="stats-card" bordered={false} style={{ marginBottom: '16px' }}>
+                          <Row gutter={[16, 16]}>
+                            <Col xs={12} sm={6}>
+                              <Statistic
+                                title="当前因子值"
+                                value={exposureData.current_value ?? '-'}
+                                precision={4}
+                                valueStyle={{ color: '#3b82f6', fontSize: '18px', fontWeight: 'bold' }}
+                              />
+                            </Col>
+                            <Col xs={12} sm={6}>
+                              <Statistic
+                                title="分位数"
+                                value={exposureData.percentile ?? '-'}
+                                precision={1}
+                                suffix="%"
+                                valueStyle={{
+                                  color: (exposureData.percentile ?? 50) > 50 ? '#ef4444' : '#22c55e',
+                                  fontSize: '18px',
+                                  fontWeight: 'bold'
+                                }}
+                              />
+                            </Col>
+                            <Col xs={12} sm={6}>
+                              <Statistic
+                                title="滚动标准差"
+                                value={exposureData.latest_std ?? '-'}
+                                precision={4}
+                              />
+                            </Col>
+                            <Col xs={12} sm={6}>
+                              <Statistic
+                                title="变异系数"
+                                value={exposureData.cv ?? '-'}
+                                precision={4}
+                              />
+                            </Col>
+                          </Row>
+                        </Card>
+
+                        {/* 分位数指示器 */}
+                        <Card bordered={false} style={{ marginBottom: '16px' }}>
+                          <div style={{ marginBottom: '8px' }}>
+                            <span style={{ fontWeight: 500 }}>因子暴露度分位数：</span>
+                            <span style={{ marginLeft: '8px', color: '#64748b' }}>
+                              {exposureData.percentile?.toFixed(1)}%
+                            </span>
+                          </div>
+                          <div style={{ position: 'relative' }}>
+                            <Progress
+                              percent={exposureData.percentile ?? 0}
+                              status="active"
+                              strokeColor={{
+                                '0%': '#22c55e',
+                                '50%': '#eab308',
+                                '100%': '#ef4444',
+                              }}
+                              showInfo={false}
+                            />
+                          </div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '4px', fontSize: '12px', color: '#64748b' }}>
+                            <span>低暴露</span>
+                            <span>中等</span>
+                            <span>高暴露</span>
+                          </div>
+                        </Card>
+
+                        {/* 分位数时间序列曲线 */}
+                        <Card title="分位数变化曲线" bordered={false} style={{ marginBottom: '16px' }}>
+                          <div ref={percentileTimeSeriesRef} className="chart-container" style={{ height: '350px' }}></div>
+                        </Card>
+
+                        {/* 历史分布直方图 */}
+                        <Card title="历史分布直方图" bordered={false}>
+                          <div ref={exposureHistogramRef} className="chart-container" style={{ height: '350px' }}></div>
+                        </Card>
+                      </>
+                    )}
+                  </Tabs.TabPane>
+
+                  <Tabs.TabPane tab="因子有效性" key="effectiveness">
+                    {!effectivenessData ? (
+                      <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
+                        <ExperimentOutlined style={{ fontSize: '48px', marginBottom: '16px' }} />
+                        <p>{loadingAnalysisTabs ? '加载中...' : '请先点击"分析因子"按钮进行因子分析'}</p>
+                      </div>
+                    ) : (
+                      <>
+                        {/* IC统计卡片 */}
+                        <Card className="stats-card" bordered={false} style={{ marginBottom: '16px' }}>
+                          <Row gutter={[16, 16]}>
+                            <Col xs={12} sm={6}>
+                              <Statistic
+                                title="IC均值"
+                                value={effectivenessData.ic_time_series?.ic_mean ?? '-'}
+                                precision={effectivenessData.ic_time_series?.ic_mean !== undefined ? 4 : undefined}
+                                valueStyle={{
+                                  color: (effectivenessData.ic_time_series?.ic_mean || 0) > 0 ? '#ef4444' : '#22c55e',
+                                  fontSize: '20px',
+                                  fontWeight: 'bold'
+                                }}
+                              />
+                            </Col>
+                            <Col xs={12} sm={6}>
+                              <Statistic
+                                title="IC标准差"
+                                value={effectivenessData.ic_time_series?.ic_std ?? '-'}
+                                precision={effectivenessData.ic_time_series?.ic_std !== undefined ? 4 : undefined}
+                              />
+                            </Col>
+                            <Col xs={12} sm={6}>
+                              <Statistic
+                                title="IR比率"
+                                value={effectivenessData.ic_time_series?.ir ?? '-'}
+                                precision={effectivenessData.ic_time_series?.ir !== undefined ? 4 : undefined}
+                                valueStyle={{ color: '#22c55e' }}
+                              />
+                            </Col>
+                            <Col xs={12} sm={6}>
+                              <Statistic
+                                title="IC>0比例"
+                                value={effectivenessData.ic_time_series?.ic_positive_ratio ?? '-'}
+                                precision={effectivenessData.ic_time_series?.ic_positive_ratio !== undefined ? 2 : undefined}
+                                suffix={effectivenessData.ic_time_series?.ic_positive_ratio !== undefined ? '%' : ''}
+                              />
+                            </Col>
+                          </Row>
+                        </Card>
+
+                        {/* 因子有效性图表 */}
+                        <Row gutter={[16, 16]}>
+                          <Col xs={24} lg={24}>
+                            <Card title="因子-收益散点图" bordered={false}>
+                              {effectivenessData.scatter_plot?.error ? (
+                                <div style={{ textAlign: 'center', padding: '40px', color: '#ef4444' }}>
+                                  {effectivenessData.scatter_plot.error}
+                                </div>
+                              ) : (
+                                <div ref={scatterChartRef} className="chart-container" style={{ height: '400px' }}></div>
+                              )}
+                            </Card>
+                          </Col>
+                          <Col xs={24} lg={24}>
+                            <Card title="IC时序分析" bordered={false}>
+                              {effectivenessData.ic_time_series?.error ? (
+                                <div style={{ textAlign: 'center', padding: '40px', color: '#ef4444' }}>
+                                  {effectivenessData.ic_time_series.error}
+                                </div>
+                              ) : (
+                                <div ref={icTimeSeriesChartRef} className="chart-container" style={{ height: '400px' }}></div>
+                              )}
+                            </Card>
+                          </Col>
+                          <Col xs={24} lg={24}>
+                            <Card title="事件响应分析（高/低暴露后收益）" bordered={false}>
+                              {effectivenessData.event_response?.error ? (
+                                <div style={{ textAlign: 'center', padding: '40px', color: '#ef4444' }}>
+                                  {effectivenessData.event_response.error}
+                                </div>
+                              ) : (
+                                <div ref={eventResponseChartRef} className="chart-container" style={{ height: '400px' }}></div>
+                              )}
+                            </Card>
+                          </Col>
+                          <Col xs={24} lg={24}>
+                            <Card title="因子衰减曲线（IC vs 持有期）" bordered={false}>
+                              {effectivenessData.decay_analysis?.error ? (
+                                <div style={{ textAlign: 'center', padding: '40px', color: '#ef4444' }}>
+                                  {effectivenessData.decay_analysis.error}
+                                </div>
+                              ) : (
+                                <div ref={decayCurveChartRef} className="chart-container" style={{ height: '400px' }}></div>
+                              )}
+                            </Card>
+                          </Col>
+                        </Row>
+                      </>
+                    )}
+                  </Tabs.TabPane>
+
+                  <Tabs.TabPane tab="因子贡献度分解" key="attribution">
+                    {!attributionData ? (
+                      <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
+                        <FundOutlined style={{ fontSize: '48px', marginBottom: '16px' }} />
+                        <p>{loadingAnalysisTabs ? '加载中...' : '请先点击"分析因子"按钮进行因子分析'}</p>
+                      </div>
+                    ) : (
+                      <Row gutter={[16, 16]}>
+                        {/* Alpha-Beta 分解 */}
+                        <Col xs={24} lg={24}>
+                          <Card title="Alpha-Beta 分析" bordered={false}>
+                            {attributionData.alpha_beta?.error ? (
+                              <div style={{ textAlign: 'center', padding: '20px', color: '#ef4444' }}>
+                                {attributionData.alpha_beta.error}
+                              </div>
+                            ) : attributionData.alpha_beta?.has_benchmark === false ? (
+                              <>
+                                <div style={{ marginBottom: '16px', padding: '12px', background: '#fff7ed', borderRadius: '8px', fontSize: '13px', color: '#c2410c' }}>
+                                  {attributionData.alpha_beta.message || '未提供基准数据'}
+                                </div>
+                                {attributionData.alpha_beta.portfolio_return && (
+                                  <Row gutter={[16, 16]}>
+                                    <Col xs={12} sm={6}>
+                                      <Statistic
+                                        title="年化收益"
+                                        value={attributionData.alpha_beta.portfolio_return.annual_return ?? '-'}
+                                        precision={4}
+                                        suffix="%"
+                                        valueStyle={{
+                                          color: (attributionData.alpha_beta.portfolio_return.annual_return ?? 0) > 0 ? '#ef4444' : '#22c55e'
+                                        }}
+                                      />
+                                    </Col>
+                                    <Col xs={12} sm={6}>
+                                      <Statistic
+                                        title="年化波动率"
+                                        value={attributionData.alpha_beta.portfolio_return.volatility ?? '-'}
+                                        precision={4}
+                                        suffix="%"
+                                      />
+                                    </Col>
+                                    <Col xs={12} sm={6}>
+                                      <Statistic
+                                        title="夏普比率"
+                                        value={attributionData.alpha_beta.portfolio_return.sharpe ?? '-'}
+                                        precision={4}
+                                      />
+                                    </Col>
+                                    <Col xs={12} sm={6}>
+                                      <Statistic
+                                        title="日均收益"
+                                        value={attributionData.alpha_beta.portfolio_return.daily_mean ?? '-'}
+                                        precision={6}
+                                      />
+                                    </Col>
+                                  </Row>
+                                )}
+                              </>
+                            ) : (
+                              <>
+                                <Row gutter={[16, 16]} style={{ marginBottom: '16px' }}>
+                                  <Col xs={12} sm={6}>
+                                    <Statistic
+                                      title="年化 Alpha"
+                                      value={attributionData.alpha_beta?.alpha ?? '-'}
+                                      precision={4}
+                                      suffix="%"
+                                      valueStyle={{
+                                        color: (attributionData.alpha_beta?.alpha ?? 0) > 0 ? '#ef4444' : '#22c55e'
+                                      }}
+                                    />
+                                  </Col>
+                                  <Col xs={12} sm={6}>
+                                    <Statistic
+                                      title="Beta"
+                                      value={attributionData.alpha_beta?.beta ?? '-'}
+                                      precision={4}
+                                    />
+                                  </Col>
+                                  <Col xs={12} sm={6}>
+                                    <Statistic
+                                      title="拟合度 (R²)"
+                                      value={attributionData.alpha_beta?.r_squared ?? '-'}
+                                      precision={4}
+                                    />
+                                  </Col>
+                                  <Col xs={12} sm={6}>
+                                    <Statistic
+                                      title="日均 Alpha"
+                                      value={attributionData.alpha_beta?.daily_alpha ?? '-'}
+                                      precision={6}
+                                    />
+                                  </Col>
+                                </Row>
+                                {attributionData.alpha_beta?.interpretation && (
+                                  <div style={{ marginTop: '16px', padding: '12px', background: '#f8fafc', borderRadius: '8px', fontSize: '13px', color: '#475569' }}>
+                                    {attributionData.alpha_beta.interpretation}
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </Card>
+                        </Col>
+
+                        {/* 收益分解 */}
+                        <Col xs={24} lg={24}>
+                          <Card title="收益分解" bordered={false}>
+                            {attributionData.return_decomposition?.error ? (
+                              <div style={{ textAlign: 'center', padding: '20px', color: '#ef4444' }}>
+                                {attributionData.return_decomposition.error}
+                              </div>
+                            ) : attributionData.return_decomposition?.overall_stats ? (
+                              <>
+                                <Row gutter={[16, 16]} style={{ marginBottom: '16px' }}>
+                                  <Col xs={12} sm={6}>
+                                    <Statistic
+                                      title="年化收益"
+                                      value={attributionData.return_decomposition.overall_stats.annual_return ?? '-'}
+                                      precision={4}
+                                      suffix="%"
+                                      valueStyle={{
+                                        color: (attributionData.return_decomposition.overall_stats.annual_return ?? 0) > 0 ? '#ef4444' : '#22c55e'
+                                      }}
+                                    />
+                                  </Col>
+                                  <Col xs={12} sm={6}>
+                                    <Statistic
+                                      title="累计收益"
+                                      value={attributionData.return_decomposition.overall_stats.cumulative_return ?? '-'}
+                                      precision={4}
+                                      suffix="%"
+                                      valueStyle={{
+                                        color: (attributionData.return_decomposition.overall_stats.cumulative_return ?? 0) > 0 ? '#ef4444' : '#22c55e'
+                                      }}
+                                    />
+                                  </Col>
+                                  <Col xs={12} sm={6}>
+                                    <Statistic
+                                      title="年化波动率"
+                                      value={attributionData.return_decomposition.overall_stats.volatility_annual ?? '-'}
+                                      precision={4}
+                                      suffix="%"
+                                    />
+                                  </Col>
+                                  <Col xs={12} sm={6}>
+                                    <Statistic
+                                      title="夏普比率"
+                                      value={attributionData.return_decomposition.overall_stats.sharpe_ratio ?? '-'}
+                                      precision={4}
+                                    />
+                                  </Col>
+                                </Row>
+                                <Row gutter={[16, 16]}>
+                                  <Col xs={12} sm={6}>
+                                    <Statistic
+                                      title="日均收益"
+                                      value={attributionData.return_decomposition.overall_stats.avg_daily_return ?? '-'}
+                                      precision={6}
+                                    />
+                                  </Col>
+                                  <Col xs={12} sm={6}>
+                                    <Statistic
+                                      title="日均波动率"
+                                      value={attributionData.return_decomposition.overall_stats.daily_volatility ?? '-'}
+                                      precision={6}
+                                    />
+                                  </Col>
+                                  <Col xs={12} sm={6}>
+                                    <Statistic
+                                      title="胜率"
+                                      value={attributionData.return_decomposition.overall_stats.win_rate ?? '-'}
+                                      precision={2}
+                                      suffix="%"
+                                    />
+                                  </Col>
+                                  <Col xs={12} sm={6}>
+                                    <Statistic
+                                      title="股票数量"
+                                      value={attributionData.return_decomposition.stock_count ?? '-'}
+                                    />
+                                  </Col>
+                                </Row>
+                              </>
+                            ) : (
+                              <div style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>
+                                暂无数据
+                              </div>
+                            )}
+                          </Card>
+                        </Col>
+
+                        {/* 因子收益贡献 */}
+                        <Col xs={24} lg={24}>
+                          <Card title="因子收益贡献" bordered={false}>
+                            {attributionData.factor_contribution?.error ? (
+                              <div style={{ textAlign: 'center', padding: '20px', color: '#ef4444' }}>
+                                {attributionData.factor_contribution.error}
+                              </div>
+                            ) : attributionData.factor_contribution?.ic !== undefined ? (
+                              <>
+                                <Row gutter={[16, 16]} style={{ marginBottom: '16px' }}>
+                                  <Col xs={12} sm={6}>
+                                    <Statistic
+                                      title="IC (信息系数)"
+                                      value={attributionData.factor_contribution.ic ?? '-'}
+                                      precision={4}
+                                      valueStyle={{
+                                        color: (attributionData.factor_contribution.ic ?? 0) > 0 ? '#ef4444' : '#22c55e'
+                                      }}
+                                    />
+                                  </Col>
+                                  <Col xs={12} sm={6}>
+                                    <Statistic
+                                      title="IC P值"
+                                      value={attributionData.factor_contribution.ic_pvalue ?? '-'}
+                                      precision={4}
+                                    />
+                                  </Col>
+                                  <Col xs={12} sm={6}>
+                                    <Statistic
+                                      title="高暴露组收益"
+                                      value={attributionData.factor_contribution.high_exposure_return ?? '-'}
+                                      precision={6}
+                                      suffix="%"
+                                    />
+                                  </Col>
+                                  <Col xs={12} sm={6}>
+                                    <Statistic
+                                      title="低暴露组收益"
+                                      value={attributionData.factor_contribution.low_exposure_return ?? '-'}
+                                      precision={6}
+                                      suffix="%"
+                                    />
+                                  </Col>
+                                </Row>
+                                <Row gutter={[16, 16]}>
+                                  <Col xs={12} sm={6}>
+                                    <Statistic
+                                      title="多空收益"
+                                      value={attributionData.factor_contribution.long_short_return ?? '-'}
+                                      precision={6}
+                                      suffix="%"
+                                      valueStyle={{
+                                        color: (attributionData.factor_contribution.long_short_return ?? 0) > 0 ? '#ef4444' : '#22c55e'
+                                      }}
+                                    />
+                                  </Col>
+                                  <Col xs={12} sm={6}>
+                                    <Statistic
+                                      title="因子贡献比例"
+                                      value={attributionData.factor_contribution.contribution_ratio ?? '-'}
+                                      precision={4}
+                                      suffix="%"
+                                      formatter={(value) => `${((Number(value) || 0) * 100).toFixed(2)}%`}
+                                    />
+                                  </Col>
+                                  <Col xs={12} sm={6}>
+                                    <Statistic
+                                      title="样本数量"
+                                      value={attributionData.factor_contribution.sample_size ?? '-'}
+                                    />
+                                  </Col>
+                                </Row>
+                              </>
+                            ) : (
+                              <div style={{ textAlign: 'center', padding: '20px', color: '#64748b' }}>
+                                暂无数据
+                              </div>
+                            )}
+                          </Card>
+                        </Col>
+                      </Row>
+                    )}
+                  </Tabs.TabPane>
+
+                  <Tabs.TabPane tab="时间序列动态监测" key="monitoring">
+                    {!monitoringData ? (
+                      <div style={{ textAlign: 'center', padding: '60px 20px', color: '#64748b' }}>
+                        <LineChartOutlined style={{ fontSize: '48px', marginBottom: '16px' }} />
+                        <p>{loadingAnalysisTabs ? '加载中...' : '请先点击"分析因子"按钮进行因子分析'}</p>
+                      </div>
+                    ) : (
+                      <Row gutter={[16, 16]}>
+                        {/* 滚动窗口带状图 */}
+                        <Col xs={24} lg={24}>
+                          <Card title="滚动窗口图（均值 ± 2倍标准差）" bordered={false}>
+                            {monitoringData.rolling_chart?.error ? (
+                              <div style={{ textAlign: 'center', padding: '20px', color: '#ef4444' }}>
+                                {monitoringData.rolling_chart.error}
+                              </div>
+                            ) : (
+                              <div ref={rollingBandChartRef} className="chart-container" style={{ height: '350px' }}></div>
+                            )}
+                          </Card>
+                        </Col>
+
+                        {/* 暴露度转移矩阵 */}
+                        <Col xs={24} lg={24}>
+                          <Card title="暴露度转移矩阵（马尔可夫转移概率）" bordered={false}>
+                            {monitoringData.transition_matrix?.error ? (
+                              <div style={{ textAlign: 'center', padding: '20px', color: '#ef4444' }}>
+                                {monitoringData.transition_matrix.error}
+                              </div>
+                            ) : (
+                              <div ref={transitionMatrixRef} className="chart-container" style={{ height: '350px' }}></div>
+                            )}
+                          </Card>
+                        </Col>
+
+                        {/* 结构断点检测 */}
+                        <Col xs={24} lg={24}>
+                          <Card title="结构性断点检测" bordered={false}>
+                            {monitoringData.structural_break?.error ? (
+                              <div style={{ textAlign: 'center', padding: '20px', color: '#ef4444' }}>
+                                {monitoringData.structural_break.error}
+                              </div>
+                            ) : (
+                              <>
+                                <div ref={structuralBreakChartRef} className="chart-container" style={{ height: '280px' }}></div>
+                                <div style={{ marginTop: '12px', padding: '12px', background: '#f8fafc', borderRadius: '8px' }}>
+                                  <div style={{ fontSize: '13px', color: '#475569', marginBottom: '4px' }}>
+                                    <strong>检测方法:</strong> {monitoringData.structural_break?.method || '-'}
+                                  </div>
+                                  <div style={{ fontSize: '13px', color: '#475569', marginBottom: '4px' }}>
+                                    <strong>断点数量:</strong> {monitoringData.structural_break?.num_breaks ?? 0}
+                                  </div>
+                                  <div style={{ fontSize: '13px', color: '#475569' }}>
+                                    {monitoringData.structural_break?.interpretation || '-'}
+                                  </div>
+                                </div>
+                              </>
+                            )}
+                          </Card>
+                        </Col>
+
+                        {/* 周期性分析 */}
+                        <Col xs={24} lg={24}>
+                          <Card title="周期性分析（FFT 傅里叶变换）" bordered={false}>
+                            {monitoringData.seasonality?.error ? (
+                              <div style={{ textAlign: 'center', padding: '20px', color: '#ef4444' }}>
+                                {monitoringData.seasonality.error}
+                              </div>
+                            ) : (
+                              <>
+                                <div ref={seasonalityChartRef} className="chart-container" style={{ height: '300px' }}></div>
+                                {monitoringData.seasonality?.dominant_periods && monitoringData.seasonality.dominant_periods.length > 0 && (
+                                  <div style={{ marginTop: '12px' }}>
+                                    <div style={{ fontSize: '13px', fontWeight: 500, marginBottom: '8px', color: '#0f172a' }}>
+                                      主要周期成分:
+                                    </div>
+                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                                      {monitoringData.seasonality.dominant_periods.slice(0, 5).map((period: any, idx: number) => (
+                                        <Tag key={idx} color="blue" style={{ fontSize: '12px' }}>
+                                          {period.period_days?.toFixed(1)} 天 (功率: {period.power?.toFixed(2)})
+                                        </Tag>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </Card>
+                        </Col>
+                      </Row>
+                    )}
+                  </Tabs.TabPane>
+                </Tabs>
+              </Card>
+            </Col>
+          </>
         )}
-      </div>
+      </Row>
 
       {/* 编辑因子弹窗 */}
       <Modal
@@ -1434,8 +3006,18 @@ const FactorDetail: React.FC = () => {
               value={editForm.code}
               onChange={(e) => setEditForm({ ...editForm, code: e.target.value })}
               placeholder="请输入因子公式"
-              rows={4}
+              rows={6}
               className="font-mono"
+              style={{
+                backgroundColor: '#f6f8fa',
+                fontSize: '14px',
+                fontFamily: 'Consolas, Monaco, monospace',
+                borderRadius: '6px',
+                padding: '12px',
+                minHeight: '150px',
+                maxHeight: '300px',
+                overflowY: 'auto'
+              }}
             />
           </Form.Item>
         </Form>
