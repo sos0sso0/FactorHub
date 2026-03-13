@@ -31,6 +31,7 @@ import {
   FundOutlined,
   QuestionCircleOutlined
 } from '@ant-design/icons'
+import { WarningOutlined } from '@ant-design/icons'
 import * as echarts from 'echarts'
 import { api } from '@/services/api'
 import './FactorDetail.css'
@@ -139,7 +140,7 @@ const getFormulaHelpContent = (formulaType: string) => {
         </div>
         <div style={{ marginBottom: '12px', paddingBottom: '12px', borderBottom: '1px solid #444' }}>
           <div style={{ fontWeight: 600, marginBottom: '6px', fontSize: '13px', color: '#fff' }}>方式二：自定义def函数</div>
-          <p style={{ margin: '0 0 8px 0', color: '#ccc', lineHeight: '1.6', fontSize: '12px' }}>使用Python def语法编写复杂逻辑（⚠️ 函数名必须为 calculate_factor）</p>
+          <p style={{ margin: '0 0 8px 0', color: '#ccc', lineHeight: '1.6', fontSize: '12px' }}>使用Python def语法编写复杂逻辑（<WarningOutlined style={{ color: '#f59e0b' }} /> 函数名必须为 calculate_factor）</p>
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
             <li style={{ padding: '2px 0', color: '#fff', fontSize: '12px', lineHeight: '1.6' }}>• <strong style={{ color: '#f59e0b' }}>函数名必须固定为：</strong><code style={{ color: '#f59e0b', background: 'rgba(245, 158, 11, 0.1)', padding: '2px 4px', borderRadius: '3px' }}>def calculate_factor(df):</code></li>
             <li style={{ padding: '2px 0', color: '#fff', fontSize: '12px', lineHeight: '1.6' }}>• 参数 <code style={{ color: '#4dabf7', background: 'rgba(255, 255, 255, 0.1)', padding: '2px 4px', borderRadius: '3px' }}>df</code> 是包含 open/high/low/close/volume 的 DataFrame</li>

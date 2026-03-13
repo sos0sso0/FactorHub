@@ -206,17 +206,17 @@ export const api = {
     fitness_objective: string
     ic_threshold: number
   }) {
-    return request.post('/mining/genetic', data)
+    return request.post('/mining/genetic', data, { timeout: 300000 }) // 5分钟超时
   },
 
   // 获取挖掘状态
   getMiningStatus(taskId: string) {
-    return request.get(`/mining/status/${taskId}`)
+    return request.get(`/mining/status/${taskId}`, { timeout: 300000 }) // 5分钟超时
   },
 
   // 获取挖掘结果
   getMiningResults(taskId: string) {
-    return request.get(`/mining/results/${taskId}`)
+    return request.get(`/mining/results/${taskId}`, { timeout: 300000 }) // 5分钟超时
   }
 }
 

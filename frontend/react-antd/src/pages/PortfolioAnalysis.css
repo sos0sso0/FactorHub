@@ -2,7 +2,7 @@
 .portfolio-analysis-container {
   min-height: 100vh;
   position: relative;
-  padding: 24px;
+  padding: 16px;
   background: transparent;
 }
 
@@ -11,9 +11,9 @@
   position: fixed;
   inset: 0;
   background:
-    radial-gradient(circle at 20% 30%, rgba(139, 92, 246, 0.08) 0%, transparent 50%),
-    radial-gradient(circle at 80% 70%, rgba(236, 72, 153, 0.06) 0%, transparent 50%),
-    radial-gradient(circle at 40% 80%, rgba(59, 130, 246, 0.05) 0%, transparent 40%);
+    radial-gradient(circle at 20% 30%, rgba(59, 130, 246, 0.08) 0%, transparent 50%),
+    radial-gradient(circle at 80% 70%, rgba(6, 182, 212, 0.06) 0%, transparent 50%),
+    radial-gradient(circle at 40% 80%, rgba(99, 102, 241, 0.05) 0%, transparent 40%);
   pointer-events: none;
   z-index: 0;
 }
@@ -22,8 +22,8 @@
   position: fixed;
   inset: 0;
   background-image:
-    linear-gradient(rgba(139, 92, 246, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(139, 92, 246, 0.03) 1px, transparent 1px);
+    linear-gradient(rgba(59, 130, 246, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(59, 130, 246, 0.03) 1px, transparent 1px);
   background-size: 60px 60px;
   pointer-events: none;
   z-index: 1;
@@ -43,10 +43,10 @@
   margin-bottom: 24px;
   padding: 20px 24px;
   background: rgba(255, 255, 255, 0.85);
-  border: 1px solid rgba(139, 92, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.12);
   border-radius: 16px;
   backdrop-filter: blur(20px);
-  box-shadow: 0 2px 12px rgba(139, 92, 246, 0.06);
+  box-shadow: 0 2px 12px rgba(59, 130, 246, 0.06);
 }
 
 .portfolio-analysis-container .header-content {
@@ -57,14 +57,14 @@
 
 .portfolio-analysis-container .header-icon {
   font-size: 36px;
-  color: #8b5cf6;
+  color: #3b82f6;
 }
 
 .portfolio-analysis-container .page-title {
   font-size: 24px;
   font-weight: 700;
   margin: 0 0 4px 0;
-  background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 50%, #3b82f6 100%);
+  background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 50%, #6366f1 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -77,25 +77,18 @@
 }
 
 /* ========== 主卡片 ========== */
-.portfolio-analysis-container .main-card {
-  background: rgba(255, 255, 255, 0.85) !important;
-  border: 1px solid rgba(139, 92, 246, 0.12) !important;
-  border-radius: 16px !important;
-  backdrop-filter: blur(20px);
-  box-shadow: 0 2px 12px rgba(139, 92, 246, 0.06);
-}
-
-/* ========== 配置卡片和结果卡片 ========== */
+.portfolio-analysis-container .main-card,
 .portfolio-analysis-container .config-card,
 .portfolio-analysis-container .result-card {
-  background: rgba(255, 255, 255, 0.9) !important;
-  border: 1px solid rgba(139, 92, 246, 0.1) !important;
-  border-radius: 12px !important;
-  box-shadow: 0 1px 8px rgba(139, 92, 246, 0.04);
+  background: rgba(255, 255, 255, 0.85) !important;
+  border: 1px solid rgba(59, 130, 246, 0.12) !important;
+  border-radius: 16px !important;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 2px 12px rgba(59, 130, 246, 0.06);
+  margin-bottom: 0;
 }
 
-.portfolio-analysis-container .config-card .ant-card-head-title,
-.portfolio-analysis-container .result-card .ant-card-head-title {
+.portfolio-analysis-container .ant-card-head-title {
   font-weight: 600;
   font-size: 16px;
   color: #0f172a;
@@ -132,6 +125,19 @@
   margin: 0;
 }
 
+/* ========== 提示文本 ========== */
+.portfolio-analysis-container .text-hint {
+  font-size: 13px;
+  color: #64748b;
+  margin-bottom: 12px;
+}
+
+.portfolio-analysis-container .text-description {
+  font-size: 14px;
+  color: #64748b;
+  line-height: 1.6;
+}
+
 /* ========== 优化中状态 ========== */
 .portfolio-analysis-container .optimizing-status {
   text-align: center;
@@ -145,19 +151,20 @@
 
 .portfolio-analysis-container .metrics-section {
   padding: 20px;
-  background: #f8fafc;
+  background: rgba(248, 250, 252, 0.5);
   border-radius: 12px;
   margin-bottom: 24px;
 }
 
 .portfolio-analysis-container .chart-section {
   padding: 16px;
-  background: #f8fafc;
+  background: rgba(248, 250, 252, 0.5);
   border-radius: 12px;
+  margin-bottom: 24px;
 }
 
 .portfolio-analysis-container .chart-title {
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 600;
   color: #0f172a;
   margin: 0 0 12px 0;
@@ -165,6 +172,13 @@
 
 .portfolio-analysis-container .chart-container {
   width: 100%;
+  height: 400px;
+  min-height: 400px;
+}
+
+.portfolio-analysis-container .chart-container.large {
+  height: 500px;
+  min-height: 500px;
 }
 
 .portfolio-analysis-container .result-title {
@@ -172,6 +186,20 @@
   font-weight: 600;
   color: #0f172a;
   margin: 0 0 16px 0;
+}
+
+/* ========== 统一卡片内文字样式 ========== */
+.portfolio-analysis-container .ant-card-body .ant-statistic-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+  margin-bottom: 4px;
+}
+
+.portfolio-analysis-container .ant-card-body .ant-statistic-content-value {
+  font-size: 20px;
+  font-weight: 600;
+  color: #0f172a;
 }
 
 /* ========== 开发中提示 ========== */
@@ -240,8 +268,98 @@
 
 .portfolio-analysis-container .ant-select-selection-item {
   border-radius: 4px;
-  background-color: rgba(139, 92, 246, 0.1);
-  border: 1px solid rgba(139, 92, 246, 0.2);
+  background-color: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+.portfolio-analysis-container .ant-select-multiple .ant-select-selection-item {
+  background-color: rgba(59, 130, 246, 0.1);
+  border: 1px solid rgba(59, 130, 246, 0.2);
+}
+
+/* ========== Tabs 样式 ========== */
+.portfolio-analysis-container .ant-tabs-nav {
+  margin-bottom: 16px;
+}
+
+.portfolio-analysis-container .ant-tabs-tab {
+  font-size: 14px;
+  font-weight: 500;
+  padding: 10px 16px;
+}
+
+/* ========== Form 样式 ========== */
+.portfolio-analysis-container .ant-form-item-label > label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.portfolio-analysis-container .ant-input,
+.portfolio-analysis-container .ant-input-number {
+  border-radius: 6px;
+}
+
+/* ========== Table 样式 ========== */
+.portfolio-analysis-container .ant-table {
+  font-size: 13px;
+}
+
+.portfolio-analysis-container .ant-table-thead > tr > th {
+  font-weight: 600;
+  background: rgba(248, 250, 252, 0.8);
+}
+
+/* ========== Button 样式 ========== */
+.portfolio-analysis-container .ant-btn-primary {
+  background: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+  border: none;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
+.portfolio-analysis-container .ant-btn-primary:hover {
+  background: linear-gradient(135deg, #2563eb 0%, #0891b2 100%);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+}
+
+/* ========== Spin 样式 ========== */
+.portfolio-analysis-container .ant-spin-text {
+  color: #64748b;
+  font-size: 14px;
+  margin-top: 12px;
+}
+
+/* ========== Tag 样式 ========== */
+.portfolio-analysis-container .ant-tag {
+  font-size: 12px;
+  border-radius: 4px;
+  padding: 2px 8px;
+}
+
+/* ========== Divider 样式 ========== */
+.portfolio-analysis-container .ant-divider {
+  border-color: rgba(59, 130, 246, 0.1);
+}
+
+.portfolio-analysis-container .ant-divider-horizontal.ant-divider-with-text {
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+/* ========== DatePicker 样式 ========== */
+.portfolio-analysis-container .ant-picker {
+  border-radius: 6px;
+  width: 100%;
+}
+
+.portfolio-analysis-container .ant-picker:hover .ant-picker-input {
+  border-color: #4096ff;
+}
+
+.portfolio-analysis-container .ant-picker-focused .ant-picker-input {
+  border-color: #4096ff;
+  box-shadow: 0 0 0 2px rgba(64, 150, 255, 0.1);
 }
 
 /* ========== 响应式 ========== */
@@ -254,5 +372,19 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 16px;
+  }
+
+  .portfolio-analysis-container .chart-container {
+    height: 300px;
+    min-height: 300px;
+  }
+
+  .portfolio-analysis-container .chart-container.large {
+    height: 400px;
+    min-height: 400px;
+  }
+
+  .portfolio-analysis-container .ant-card-body .ant-statistic-content-value {
+    font-size: 18px;
   }
 }

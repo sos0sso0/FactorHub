@@ -22,7 +22,15 @@ import {
   PlayCircleOutlined,
   SaveOutlined,
   BarChartOutlined,
-  RocketOutlined
+  RocketOutlined,
+  SyncOutlined,
+  LoadingOutlined,
+  InfoCircleOutlined,
+  CheckCircleOutlined,
+  WarningOutlined,
+  AimOutlined,
+  BulbOutlined,
+  ClockCircleOutlined
 } from '@ant-design/icons'
 import * as echarts from 'echarts'
 import { api } from '@/services/api'
@@ -89,6 +97,10 @@ const FactorMining: React.FC = () => {
 
   const [miningStatus, setMiningStatus] = useState<MiningStatus | null>(null)
   const [miningResult, setMiningResult] = useState<MiningResult | null>(null)
+  const [elapsedTime, setElapsedTime] = useState<number>(0) // 挖掘已用时间（秒）
+  const miningStartTimeRef = useRef<number | null>(null) // 挖掘开始时间戳
+  const elapsedTimeIntervalRef = useRef<NodeJS.Timeout | null>(null) // 计时器ID
+  const [savedFactorNames, setSavedFactorNames] = useState<Set<string>>(new Set()) // 已保存的因子名称
 
   // 加载因子列表
   const loadFactors = async () => {
@@ -123,6 +135,11 @@ const FactorMining: React.FC = () => {
       // 清理定时器
       if (window.miningInterval) {
         clearInterval(window.miningInterval)
+      }
+      // 清理计时器
+      if (elapsedTimeIntervalRef.current) {
+        clearInterval(elapsedTimeIntervalRef.current)
+        elapsedTimeIntervalRef.current = null
       }
       // 清理图表
       if (chartInstanceRef.current) {
@@ -163,11 +180,24 @@ const FactorMining: React.FC = () => {
       setLoading(true)
       setMining(true)
       setMiningResult(null)
+      setElapsedTime(0) // 重置计时器
+      setSavedFactorNames(new Set()) // 新挖掘时清除记录
 
       const response = await api.startGeneticMining(requestData) as any
 
       if (response.success) {
         const newTaskId = response.data.task_id
+
+        // 记录挖掘开始时间
+        miningStartTimeRef.current = Date.now()
+
+        // 启动计时器，每秒更新一次已用时间
+        elapsedTimeIntervalRef.current = setInterval(() => {
+          if (miningStartTimeRef.current) {
+            const elapsed = Math.floor((Date.now() - miningStartTimeRef.current) / 1000)
+            setElapsedTime(elapsed)
+          }
+        }, 1000)
 
         // 轮询获取进度
         window.miningInterval = setInterval(() => {
@@ -215,6 +245,12 @@ const FactorMining: React.FC = () => {
           if (window.miningInterval) {
             clearInterval(window.miningInterval)
           }
+          // 清除计时器
+          if (elapsedTimeIntervalRef.current) {
+            clearInterval(elapsedTimeIntervalRef.current)
+            elapsedTimeIntervalRef.current = null
+          }
+          miningStartTimeRef.current = null
           setMining(false)
           await getMiningResults(currentTaskId)
         } else if (statusData.status === 'failed') {
@@ -222,12 +258,33 @@ const FactorMining: React.FC = () => {
           if (window.miningInterval) {
             clearInterval(window.miningInterval)
           }
+          // 清除计时器
+          if (elapsedTimeIntervalRef.current) {
+            clearInterval(elapsedTimeIntervalRef.current)
+            elapsedTimeIntervalRef.current = null
+          }
+          miningStartTimeRef.current = null
           setMining(false)
           message.error(`挖掘失败: ${statusData.error || '未知错误'}`)
         }
       }
     } catch (error) {
       console.error('获取进度失败:', error)
+      // 不中断轮询，继续尝试获取进度
+      // 只有在任务不存在时才停止
+      if (error instanceof Error && error.message.includes('任务不存在')) {
+        if (window.miningInterval) {
+          clearInterval(window.miningInterval)
+        }
+        // 清除计时器
+        if (elapsedTimeIntervalRef.current) {
+          clearInterval(elapsedTimeIntervalRef.current)
+          elapsedTimeIntervalRef.current = null
+        }
+        miningStartTimeRef.current = null
+        setMining(false)
+        message.error('任务不存在或已过期')
+      }
     }
   }
 
@@ -456,41 +513,163 @@ const FactorMining: React.FC = () => {
     }
   }
 
-  // 保存单个因子
-  const saveFactor = async (factor: MinedFactor, index: number) => {
-    try {
-      // 生成因子名称：Mined_Factor_序号_年月日_股票代码
-      const today = new Date()
-      const dateStr = [
-        today.getFullYear(),
-        String(today.getMonth() + 1).padStart(2, '0'),
-        String(today.getDate()).padStart(2, '0')
-      ].join('')
+  // 保存单个因子（带重试机制）
+  const saveFactor = async (factor: MinedFactor, index: number, retryCount: number = 0) => {
+    // 生成因子名称：Mined_Factor_序号_年月日_股票代码
+    const today = new Date()
+    const dateStr = [
+      today.getFullYear(),
+      String(today.getMonth() + 1).padStart(2, '0'),
+      String(today.getDate()).padStart(2, '0')
+    ].join('')
 
-      const factorName = `Mined_Factor_${index + 1}_${dateStr}_${currentStockCode}`
+    // 确保使用有效的股票代码
+    const stockCode = currentStockCode || 'Unknown'
+    const baseFactorName = `Mined_Factor_${index + 1}_${dateStr}_${stockCode}`
+
+    // 根据重试次数生成名称
+    let factorName: string
+    if (retryCount === 0) {
+      factorName = baseFactorName
+    } else {
+      factorName = `${baseFactorName}_${retryCount}`
+    }
+
+    try {
+      // 将表达式包装成完整的函数
+      const generateFactorFunction = (expr: string) => {
+        // 为表达式添加 df 前缀
+        const processedExpr = expr
+          .replace(/\bopen\b/g, "df['open']")
+          .replace(/\bclose\b/g, "df['close']")
+          .replace(/\bhigh\b/g, "df['high']")
+          .replace(/\blow\b/g, "df['low']")
+          .replace(/\bvolume\b/g, "df['volume']")
+
+        return `def calculate_factor(df):
+    """
+    遗传算法挖掘因子
+    表达式: ${expr}
+    IC: ${factor.ic?.toFixed(4)}
+    IR: ${factor.ir?.toFixed(4)}
+    """
+    import pandas as pd
+    import numpy as np
+
+    try:
+        result = ${processedExpr}
+        return result
+    except Exception as e:
+        # 如果计算失败，返回全0序列
+        return pd.Series(0, index=df.index)
+`
+      }
 
       const factorData = {
         name: factorName,
-        code: factor.expression,
+        code: generateFactorFunction(factor.expression),
         category: '遗传挖掘',
-        description: `通过遗传算法挖掘的因子\nIC: ${factor.ic?.toFixed(4)}\nIR: ${factor.ir?.toFixed(4)}\n适应度: ${factor.fitness?.toFixed(4)}`,
-        formula_type: 'expression'
+        description: `通过遗传算法挖掘的因子 | 表达式: ${factor.expression} | IC: ${factor.ic?.toFixed(4)} | IR: ${factor.ir?.toFixed(4)} | 适应度: ${factor.fitness?.toFixed(4)}`,
+        formula_type: 'function'
       }
 
       console.log('Saving factor:', factorData)
+      console.log('Factor code length:', factorData.code.length)
+
       const response = await api.createFactor(factorData) as any
 
       if (response.success) {
         message.success(`因子 "${factorName}" 已保存到自定义因子库`)
+        // 记录已保存的因子
+        setSavedFactorNames(prev => new Set(prev).add(factorName))
         // 刷新因子列表
         await loadFactors()
       } else {
-        message.error('保存失败: ' + (response.message || '未知错误'))
+        message.error('保存失败: ' + (response.data?.detail || response.message || '未知错误'))
       }
     } catch (error: any) {
       console.error('保存因子失败:', error)
-      message.error('保存因子失败: ' + (error.message || '未知错误'))
+      const errorMsg = error.response?.data?.detail || error.response?.data?.message || error.message || '未知错误'
+
+      // 如果是"已存在"错误且重试次数少于5次，使用新名称重试
+      if (errorMsg.includes('已存在') && retryCount < 5) {
+        console.log(`因子名称 ${factorName} 已存在，尝试使用新名称 (重试 ${retryCount + 1}/5)`)
+        await saveFactor(factor, index, retryCount + 1)
+      } else {
+        message.error('保存因子失败: ' + errorMsg)
+      }
     }
+  }
+
+  // 保存单个因子到后端（带重试机制）
+  const saveSingleFactorWithRetry = async (
+    factor: MinedFactor,
+    index: number,
+    dateStr: string,
+    stockCode: string
+  ): Promise<{ success: boolean; name?: string; renamed?: boolean }> => {
+    const baseFactorName = `Mined_Factor_${index + 1}_${dateStr}_${stockCode}`
+
+    for (let retry = 0; retry <= 5; retry++) {
+      const factorName = retry === 0 ? baseFactorName : `${baseFactorName}_${retry}`
+
+      try {
+        // 生成完整的因子函数代码
+        const processedExpr = factor.expression
+          .replace(/\bopen\b/g, "df['open']")
+          .replace(/\bclose\b/g, "df['close']")
+          .replace(/\bhigh\b/g, "df['high']")
+          .replace(/\blow\b/g, "df['low']")
+          .replace(/\bvolume\b/g, "df['volume']")
+
+        const factorCode = `def calculate_factor(df):
+    """
+    遗传算法挖掘因子
+    表达式: ${factor.expression}
+    IC: ${factor.ic?.toFixed(4)}
+    IR: ${factor.ir?.toFixed(4)}
+    """
+    import pandas as pd
+    import numpy as np
+
+    try:
+        result = ${processedExpr}
+        return result
+    except Exception as e:
+        return pd.Series(0, index=df.index)
+`
+
+        const factorData = {
+          name: factorName,
+          code: factorCode,
+          category: '遗传挖掘',
+          description: `通过遗传算法挖掘的因子 | 表达式: ${factor.expression} | IC: ${factor.ic?.toFixed(4)} | IR: ${factor.ir?.toFixed(4)} | 适应度: ${factor.fitness?.toFixed(4)}`,
+          formula_type: 'function'
+        }
+
+        const response = await api.createFactor(factorData) as any
+
+        if (response.success) {
+          return {
+            success: true,
+            name: factorName,
+            renamed: retry > 0
+          }
+        }
+      } catch (error: any) {
+        const errorMsg = error.response?.data?.detail || error.response?.data?.message || error.message || '未知错误'
+
+        // 如果是"已存在"错误且还可以重试，继续循环
+        if (errorMsg.includes('已存在') && retry < 5) {
+          console.log(`因子 ${baseFactorName} 已存在，尝试使用新名称: ${factorName}`)
+          continue
+        } else {
+          return { success: false }
+        }
+      }
+    }
+
+    return { success: false }
   }
 
   // 保存全部因子
@@ -508,44 +687,44 @@ const FactorMining: React.FC = () => {
       String(today.getDate()).padStart(2, '0')
     ].join('')
 
+    // 确保使用有效的股票代码
+    const stockCode = currentStockCode || 'Unknown'
+
     let successCount = 0
     let failCount = 0
+    let renamedCount = 0
 
     for (let i = 0; i < miningResult.factors.length; i++) {
       const factor = miningResult.factors[i]
 
-      try {
-        // 生成因子名称：Mined_Factor_序号_年月日_股票代码
-        const factorName = `Mined_Factor_${i + 1}_${dateStr}_${currentStockCode}`
+      const result = await saveSingleFactorWithRetry(factor, i, dateStr, stockCode)
 
-        const factorData = {
-          name: factorName,
-          code: factor.expression,
-          category: '遗传挖掘',
-          description: `通过遗传算法挖掘的因子\nIC: ${factor.ic?.toFixed(4)}\nIR: ${factor.ir?.toFixed(4)}\n适应度: ${factor.fitness?.toFixed(4)}`,
-          formula_type: 'expression'
+      if (result.success) {
+        successCount++
+        if (result.name) {
+          setSavedFactorNames(prev => new Set(prev).add(result.name!))
         }
-
-        console.log(`Saving factor ${i + 1}/${miningResult.factors.length}:`, factorName)
-        const response = await api.createFactor(factorData) as any
-
-        if (response.success) {
-          successCount++
-          console.log(`Factor ${i + 1} saved successfully`)
-        } else {
-          failCount++
-          console.error(`Factor ${i + 1} save failed:`, response.message)
+        if (result.renamed) {
+          renamedCount++
         }
-      } catch (error) {
-        console.error(`保存因子 ${i + 1} 失败:`, error)
+        console.log(`Factor ${i + 1} saved successfully as ${result.name}`)
+      } else {
         failCount++
+        console.error(`Factor ${i + 1} save failed after retries`)
       }
     }
 
     // 刷新因子列表
     await loadFactors()
 
-    if (failCount === 0) {
+    // 显示结果消息
+    if (renamedCount > 0) {
+      if (failCount === 0) {
+        message.success(`保存完成: 成功 ${successCount} 个（其中 ${renamedCount} 个使用了新名称）`)
+      } else {
+        message.warning(`保存完成: 成功 ${successCount} 个, 失败 ${failCount} 个（其中 ${renamedCount} 个使用了新名称）`)
+      }
+    } else if (failCount === 0) {
       message.success(`成功保存 ${successCount} 个因子到自定义因子库`)
     } else {
       message.warning(`保存完成: 成功 ${successCount} 个, 失败 ${failCount} 个`)
@@ -554,8 +733,23 @@ const FactorMining: React.FC = () => {
 
   // 计算进度百分比
   const getProgressPercent = () => {
-    if (!miningStatus) return 0
+    if (!miningStatus || miningStatus.total_generations === 0) return 0
     return Math.round((miningStatus.current_generation / miningStatus.total_generations) * 100)
+  }
+
+  // 格式化挖掘时长
+  const formatElapsedTime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600)
+    const minutes = Math.floor((seconds % 3600) / 60)
+    const secs = seconds % 60
+
+    if (hours > 0) {
+      return `${hours}小时${minutes}分${secs}秒`
+    } else if (minutes > 0) {
+      return `${minutes}分${secs}秒`
+    } else {
+      return `${secs}秒`
+    }
   }
 
   return (
@@ -827,52 +1021,85 @@ const FactorMining: React.FC = () => {
               )}
 
               {/* 挖掘进度和完成状态 */}
-              {miningStatus && !miningResult && (
+              {(mining || miningStatus) && !miningResult && (
                 <div className="mining-progress">
-                  <div className="progress-section">
-                    <div className="progress-header">
-                      <span className="progress-label">挖掘进度</span>
-                      <span className="progress-value">{getProgressPercent()}%</span>
-                    </div>
-                    <Progress
-                      percent={getProgressPercent()}
-                      status={mining ? "active" : "success"}
-                      strokeColor={{
-                        '0%': '#3b82f6',
-                        '100%': '#22c55e'
-                      }}
+                  {/* 挖掘状态提示 */}
+                  {mining && (
+                    <Alert
+                      message={
+                        <Space>
+                          <SyncOutlined spin />
+                          <span>挖掘进行中...</span>
+                          <ClockCircleOutlined />
+                          <span style={{ color: '#64748b' }}>已用时: {formatElapsedTime(elapsedTime)}</span>
+                        </Space>
+                      }
+                      type="info"
+                      showIcon={false}
+                      style={{ marginBottom: 16, background: 'rgba(59, 130, 246, 0.1)', border: '1px solid rgba(59, 130, 246, 0.2)' }}
                     />
-                  </div>
+                  )}
 
-                  <Row gutter={16} style={{ marginTop: 24 }}>
-                    <Col span={8}>
-                      <div className="stat-item">
-                        <p className="stat-label">当前代数</p>
-                        <p className="stat-value">{miningStatus.current_generation}/{miningStatus.total_generations}</p>
+                  {/* 进度条和统计信息 - 只有当有 miningStatus 时才显示 */}
+                  {miningStatus && (
+                    <>
+                      <div className="progress-section">
+                        <div className="progress-header">
+                          <span className="progress-label">挖掘进度</span>
+                          <span className="progress-value">{getProgressPercent()}%</span>
+                        </div>
+                        <Progress
+                          percent={getProgressPercent()}
+                          status={mining ? "active" : "success"}
+                          strokeColor={{
+                            '0%': '#3b82f6',
+                            '100%': '#22c55e'
+                          }}
+                        />
                       </div>
-                    </Col>
-                    <Col span={8}>
-                      <div className="stat-item">
-                        <p className="stat-label">最优适应度</p>
-                        <p className="stat-value stat-primary">
-                          {miningStatus.best_fitness?.toFixed(4) || '-'}
-                        </p>
-                      </div>
-                    </Col>
-                    <Col span={8}>
-                      <div className="stat-item">
-                        <p className="stat-label">平均适应度</p>
-                        <p className="stat-value">
-                          {miningStatus.avg_fitness?.toFixed(4) || '-'}
-                        </p>
-                      </div>
-                    </Col>
-                  </Row>
 
-                  <div className="chart-section" style={{ marginTop: 24 }}>
-                    <h4 className="chart-title">进化曲线（实时）</h4>
-                    <div ref={evolutionChartRef} className="chart-container" style={{ height: '300px' }}></div>
-                  </div>
+                      <Row gutter={16} style={{ marginTop: 24 }}>
+                        <Col span={8}>
+                          <div className="stat-item">
+                            <p className="stat-label">当前代数</p>
+                            <p className="stat-value">{miningStatus.current_generation}/{miningStatus.total_generations}</p>
+                          </div>
+                        </Col>
+                        <Col span={8}>
+                          <div className="stat-item">
+                            <p className="stat-label">最优适应度</p>
+                            <p className="stat-value stat-primary">
+                              {miningStatus.best_fitness?.toFixed(4) || '-'}
+                            </p>
+                          </div>
+                        </Col>
+                        <Col span={8}>
+                          <div className="stat-item">
+                            <p className="stat-label">平均适应度</p>
+                            <p className="stat-value">
+                              {miningStatus.avg_fitness?.toFixed(4) || '-'}
+                            </p>
+                          </div>
+                        </Col>
+                      </Row>
+                    </>
+                  )}
+
+                  {/* 如果正在挖掘但还没有状态数据，显示加载提示 */}
+                  {mining && !miningStatus && (
+                    <div style={{ textAlign: 'center', padding: '40px 0', color: '#64748b' }}>
+                      <Spin size="large" />
+                      <p style={{ marginTop: 16 }}>正在启动挖掘任务...</p>
+                    </div>
+                  )}
+
+                  {/* 进化曲线图表 - 只有当有数据时才显示 */}
+                  {miningStatus && (
+                    <div className="chart-section" style={{ marginTop: 24 }}>
+                      <h4 className="chart-title">进化曲线（实时）</h4>
+                      <div ref={evolutionChartRef} className="chart-container" style={{ height: '300px' }}></div>
+                    </div>
+                  )}
                 </div>
               )}
 

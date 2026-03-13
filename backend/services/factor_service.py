@@ -312,6 +312,18 @@ class FactorCalculator:
                 "HIGH": df["high"],
                 "LOW": df["low"],
                 "VOL": df["volume"],
+                # Python内置函数
+                "int": int,
+                "float": float,
+                "bool": bool,
+                "str": str,
+                "list": list,
+                "tuple": tuple,
+                "dict": dict,
+                "set": set,
+                "len": len,
+                "range": range,
+                # NumPy
                 "np": np,
                 **self.talib_funcs,
                 **self.mylanguage_funcs,
@@ -606,13 +618,274 @@ class FactorService:
                 },
                 {
                     "name": "regime_volatility",
-                    "code": "(np.log(close / close.shift(1)).rolling(window=10).std() > np.log(close / close.shift(1)).rolling(window=10).std().expanding().quantile(0.7)).astype(int)",
-                    "description": "高波动regime标记（使用expanding避免未来函数）",
+                    "code": "(np.log(close / close.shift(1)).rolling(window=20).std() > np.log(close / close.shift(1)).rolling(window=20).std().shift(1).expanding().max()).astype(int)",
+                    "description": "高波动regime标记（当前波动大于历史最大值）",
                 },
                 {
                     "name": "regime_trend",
                     "code": "((ADX(high, low, close, timeperiod=14) > 25) & (SMA(close, timeperiod=20) > SMA(close, timeperiod=60))).astype(int)",
                     "description": "趋势市标记",
+                },
+            ],
+            "动量加速度": [
+                {
+                    "name": "momentum_20",
+                    "code": "close / close.shift(20) - 1",
+                    "description": "20日动量（20日收益率）",
+                },
+                {
+                    "name": "momentum_60",
+                    "code": "close / close.shift(60) - 1",
+                    "description": "60日动量（60日收益率）",
+                },
+                {
+                    "name": "momentum_acceleration",
+                    "code": "(close / close.shift(10) - 1) - (close.shift(10) / close.shift(20) - 1)",
+                    "description": "动量加速度（近期动量减去前期动量）",
+                },
+                {
+                    "name": "price_momentum_strength",
+                    "code": "(SMA(close, timeperiod=5) / SMA(close, timeperiod=20) - 1) * 100",
+                    "description": "价格动量强度（短期均线相对长期均线的百分比）",
+                },
+            ],
+            "反转信号": [
+                {
+                    "name": "reversal_5",
+                    "code": "-(close / close.shift(5) - 1)",
+                    "description": "5日反转因子（负收益率，用于捕捉短期反转）",
+                },
+                {
+                    "name": "reversal_10",
+                    "code": "-(close / close.shift(10) - 1)",
+                    "description": "10日反转因子",
+                },
+                {
+                    "name": "deviation_from_ma20",
+                    "code": "(close - SMA(close, timeperiod=20)) / SMA(close, timeperiod=20)",
+                    "description": "价格偏离20日均线的程度",
+                },
+                {
+                    "name": "deviation_from_ma60",
+                    "code": "(close - SMA(close, timeperiod=60)) / SMA(close, timeperiod=60)",
+                    "description": "价格偏离60日均线的程度",
+                },
+                {
+                    "name": "stochastic_k",
+                    "code": "(close - LLV(low, 14)) / (HHV(high, 14) - LLV(low, 14)) * 100",
+                    "description": "随机指标K值（衡量价格在近期区间的相对位置）",
+                },
+                {
+                    "name": "stochastic_d",
+                    "code": "SMA((close - LLV(low, 14)) / (HHV(high, 14) - LLV(low, 14)) * 100, timeperiod=3)",
+                    "description": "随机指标D值（K值的3日平滑）",
+                },
+            ],
+            "技术形态": [
+                {
+                    "name": "three_rising_candles",
+                    "code": "EVERY(close > open, 3).astype(int)",
+                    "description": "三连阳形态（连续3日收阳）",
+                },
+                {
+                    "name": "three_falling_candles",
+                    "code": "EVERY(close < open, 3).astype(int)",
+                    "description": "三连阴形态（连续3日收阴）",
+                },
+                {
+                    "name": "golden_cross",
+                    "code": "CROSS(SMA(close, timeperiod=5), SMA(close, timeperiod=20)).astype(int)",
+                    "description": "金叉信号（5日均线上穿20日均线）",
+                },
+                {
+                    "name": "death_cross",
+                    "code": "CROSS(SMA(close, timeperiod=20), SMA(close, timeperiod=5)).astype(int)",
+                    "description": "死叉信号（5日均线下穿20日均线）",
+                },
+                {
+                    "name": "new_high_20",
+                    "code": "(close >= HHV(high, 20)).astype(int)",
+                    "description": "触及20日新高",
+                },
+                {
+                    "name": "new_low_20",
+                    "code": "(close <= LLV(low, 20)).astype(int)",
+                    "description": "触及20日新低",
+                },
+                {
+                    "name": "gap_up",
+                    "code": "(low > REF(high, 1)).astype(int)",
+                    "description": "向上跳空（今日最低价大于昨日最高价）",
+                },
+                {
+                    "name": "gap_down",
+                    "code": "(high < REF(low, 1)).astype(int)",
+                    "description": "向下跳空（今日最高价小于昨日最低价）",
+                },
+            ],
+            "市场情绪": [
+                {
+                    "name": "price_change_1",
+                    "code": "(close - close.shift(1)) / close.shift(1)",
+                    "description": "1日涨跌幅",
+                },
+                {
+                    "name": "price_change_5",
+                    "code": "(close - close.shift(5)) / close.shift(5)",
+                    "description": "5日涨跌幅",
+                },
+                {
+                    "name": "volatility_change",
+                    "code": "np.log(close / close.shift(1)).rolling(window=10).std() - np.log(close / close.shift(1)).rolling(window=10).std().shift(5)",
+                    "description": "波动率变化（当前10日波动率减去5日前波动率）",
+                },
+                {
+                    "name": "volume_surge",
+                    "code": "CROSS(volume, SMA(volume, timeperiod=20) * 1.5).astype(int)",
+                    "description": "放量信号（成交量突破20日均量的1.5倍）",
+                },
+                {
+                    "name": "volume_shrink",
+                    "code": "CROSS(SMA(volume, timeperiod=20) * 0.7, volume).astype(int)",
+                    "description": "缩量信号（成交量低于20日均量的0.7倍）",
+                },
+            ],
+            "风险指标": [
+                {
+                    "name": "downside_risk",
+                    "code": "np.log(close / close.shift(1)).clip(upper=0).rolling(window=20).std()",
+                    "description": "下行风险（仅计算负收益的标准差）",
+                },
+                {
+                    "name": "skewness_20",
+                    "code": "np.log(close / close.shift(1)).rolling(window=20).skew()",
+                    "description": "20日收益率偏度（衡量分布不对称性）",
+                },
+                {
+                    "name": "kurtosis_20",
+                    "code": "np.log(close / close.shift(1)).rolling(window=20).kurt()",
+                    "description": "20日收益率峰度（衡量尾部风险）",
+                },
+                {
+                    "name": "max_drawdown_20",
+                    "code": "close.rolling(window=20).apply(lambda x: (x - x.cummax()).min() / x.cummax().max())",
+                    "description": "20日最大回撤",
+                },
+                {
+                    "name": "var_95_20",
+                    "code": "np.log(close / close.shift(1)).rolling(window=20).quantile(0.05)",
+                    "description": "20日95% VaR（在险价值）",
+                },
+            ],
+            "均线系统": [
+                {
+                    "name": "ma5",
+                    "code": "SMA(close, timeperiod=5)",
+                    "description": "5日均线",
+                },
+                {
+                    "name": "ma10",
+                    "code": "SMA(close, timeperiod=10)",
+                    "description": "10日均线",
+                },
+                {
+                    "name": "ma20",
+                    "code": "SMA(close, timeperiod=20)",
+                    "description": "20日均线",
+                },
+                {
+                    "name": "ma60",
+                    "code": "SMA(close, timeperiod=60)",
+                    "description": "60日均线",
+                },
+                {
+                    "name": "ma120",
+                    "code": "SMA(close, timeperiod=120)",
+                    "description": "120日均线",
+                },
+                {
+                    "name": "ema12",
+                    "code": "EMA(close, timeperiod=12)",
+                    "description": "12日指数移动平均",
+                },
+                {
+                    "name": "ema26",
+                    "code": "EMA(close, timeperiod=26)",
+                    "description": "26日指数移动平均",
+                },
+                {
+                    "name": "ma_bias_5_20",
+                    "code": "(SMA(close, timeperiod=5) - SMA(close, timeperiod=20)) / SMA(close, timeperiod=20)",
+                    "description": "5日均线乖离率（相对20日均线）",
+                },
+                {
+                    "name": "ma_bias_10_60",
+                    "code": "(SMA(close, timeperiod=10) - SMA(close, timeperiod=60)) / SMA(close, timeperiod=60)",
+                    "description": "10日均线乖离率（相对60日均线）",
+                },
+                {
+                    "name": "ma_multi_align",
+                    "code": "((SMA(close, timeperiod=5) > SMA(close, timeperiod=10)).astype(int) + (SMA(close, timeperiod=10) > SMA(close, timeperiod=20)).astype(int) + (SMA(close, timeperiod=20) > SMA(close, timeperiod=60)).astype(int))",
+                    "description": "均线多头排列得分（短中长期均线的多头排列程度）",
+                },
+            ],
+            "价格位置": [
+                {
+                    "name": "percentile_20",
+                    "code": "close.rolling(window=20).apply(lambda x: (x.iloc[-1] - x.min()) / (x.max() - x.min()))",
+                    "description": "20日价格分位数（当前价格在20日区间中的位置）",
+                },
+                {
+                    "name": "percentile_60",
+                    "code": "close.rolling(window=60).apply(lambda x: (x.iloc[-1] - x.min()) / (x.max() - x.min()))",
+                    "description": "60日价格分位数（当前价格在60日区间中的位置）",
+                },
+                {
+                    "name": "distance_to_high_20",
+                    "code": "(HHV(high, 20) - close) / HHV(high, 20)",
+                    "description": "距离20日高点的幅度",
+                },
+                {
+                    "name": "distance_to_low_20",
+                    "code": "(close - LLV(low, 20)) / LLV(low, 20)",
+                    "description": "距离20日低点的幅度",
+                },
+                {
+                    "name": "price_range_ratio_20",
+                    "code": "(close - LLV(low, 20)) / (HHV(high, 20) - LLV(low, 20))",
+                    "description": "价格在20日高低区间的相对位置",
+                },
+            ],
+            "资金流动": [
+                {
+                    "name": "force_index",
+                    "code": "(close - close.shift(1)) * volume",
+                    "description": "强力指数（价格变化方向与成交量的结合）",
+                },
+                {
+                    "name": "force_index_ma",
+                    "code": "SMA((close - close.shift(1)) * volume, timeperiod=13)",
+                    "description": "13日强力指数均值",
+                },
+                {
+                    "name": "money_flow",
+                    "code": "IF(close > open, (close + open + high + low) / 4 * volume, -(close + open + high + low) / 4 * volume)",
+                    "description": "资金流（阳线为正，阴线为负）",
+                },
+                {
+                    "name": "money_flow_ma",
+                    "code": "SMA(IF(close > open, (close + open + high + low) / 4 * volume, -(close + open + high + low) / 4 * volume), timeperiod=5)",
+                    "description": "5日资金流均值",
+                },
+                {
+                    "name": "vwma_20",
+                    "code": "SUM(close * volume, 20) / SUM(volume, 20)",
+                    "description": "20日成交量加权均线",
+                },
+                {
+                    "name": "price_vwma_ratio",
+                    "code": "close / (SUM(close * volume, 20) / SUM(volume, 20))",
+                    "description": "价格相对VWMA的位置",
                 },
             ],
         }
@@ -646,9 +919,21 @@ class FactorService:
         repo = FactorRepository(db)
 
         # 检查名称是否已存在
-        if repo.get_by_name(name):
-            db.close()
-            raise ValueError(f"因子名称 '{name}' 已存在")
+        existing_factor = repo.get_by_name(name, include_inactive=True)
+
+        if existing_factor:
+            # 如果因子已存在
+            if existing_factor.is_active == 1:
+                # 活跃因子，不能创建
+                db.close()
+                raise ValueError(f"因子名称 '{name}' 已存在")
+            else:
+                # 已软删除的因子，硬删除旧记录后创建新记录
+                logger.info(f"因子 '{name}' 已存在但已删除，将替换为新记录")
+                from sqlalchemy import delete
+                stmt = delete(FactorModel).where(FactorModel.id == existing_factor.id)
+                db.execute(stmt)
+                db.commit()
 
         factor = FactorModel(
             name=name,

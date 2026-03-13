@@ -27,6 +27,7 @@ import {
   ThunderboltOutlined,
   SyncOutlined
 } from '@ant-design/icons'
+import { AimOutlined, BulbOutlined } from '@ant-design/icons'
 import * as echarts from 'echarts'
 import axios from 'axios'
 import dayjs from 'dayjs'
@@ -83,6 +84,8 @@ const PortfolioAnalysis: React.FC = () => {
   const [optimizing, setOptimizing] = useState(false)
   const [optimizationResult, setOptimizationResult] = useState<OptimizationResult | null>(null)
   const [activeTab, setActiveTab] = useState('weights')
+  const [compositeFactorCode, setCompositeFactorCode] = useState<string>('')
+  const [savingFactor, setSavingFactor] = useState(false)
 
   // 综合得分状态
   const [compositeResult, setCompositeResult] = useState<any>(null)
@@ -149,7 +152,7 @@ const PortfolioAnalysis: React.FC = () => {
 
     const [startDate, endDate] = values.dateRange
     const requestData = {
-      stock_code: values.stock_code || '000001.SZ', // 添加必需的 stock_code 字段
+      stock_code: values.stock_code || '000001', // 添加必需的 stock_code 字段
       factors: selectedFactors,
       start_date: startDate.format('YYYY-MM-DD'),
       end_date: endDate.format('YYYY-MM-DD'),
@@ -160,18 +163,42 @@ const PortfolioAnalysis: React.FC = () => {
     try {
       setLoading(true)
       setOptimizing(true)
+
+      // 清空结果前先销毁图表实例
+      if (weightChartInstanceRef.current) {
+        weightChartInstanceRef.current.dispose()
+        weightChartInstanceRef.current = null
+      }
+      if (convergenceChartInstanceRef.current) {
+        convergenceChartInstanceRef.current.dispose()
+        convergenceChartInstanceRef.current = null
+      }
+
       setOptimizationResult(null)
 
       const response = await axios.post('/api/portfolio/optimize-weights', requestData)
 
       if (response.data.success) {
-        setOptimizationResult(response.data.data)
+        const resultData = response.data.data
+        setOptimizationResult(resultData)
         message.success('权重优化完成')
 
-        // 延迟渲染图表
+        // 立即生成组合因子代码（使用返回的数据而不是状态）
+        console.log('[runOptimization] 开始生成组合因子代码')
+        console.log('[runOptimization] 优化结果:', resultData)
+        console.log('[runOptimization] 可用因子列表:', factors)
+
+        const code = generateCompositeFactorCode(resultData)
+        console.log('[runOptimization] 生成的代码长度:', code.length)
+        console.log('[runOptimization] 生成的代码预览:', code.substring(0, 200))
+
+        setCompositeFactorCode(code)
+
+        // 延迟渲染图表，等待DOM更新完成
         setTimeout(() => {
-          updateCharts(response.data.data)
-        }, 200)
+          console.log('[runOptimization] 开始更新图表')
+          updateCharts(resultData)
+        }, 300)
       } else {
         message.error(response.data.message || '优化失败')
       }
@@ -194,12 +221,29 @@ const PortfolioAnalysis: React.FC = () => {
 
   // 更新权重饼图
   const updateWeightChart = (weights: Record<string, number>) => {
-    if (!weightChartRef.current) return
+    console.log('[updateWeightChart] 开始更新权重图表', weights)
+
+    if (!weightChartRef.current) {
+      console.error('[updateWeightChart] weightChartRef.current 不存在')
+      return
+    }
+
+    // 检查容器尺寸
+    const rect = weightChartRef.current.getBoundingClientRect()
+    console.log('[updateWeightChart] 容器尺寸:', rect.width, 'x', rect.height)
+
+    if (rect.width === 0 || rect.height === 0) {
+      console.error('[updateWeightChart] 容器尺寸为0，无法渲染图表')
+      return
+    }
 
     let chart = weightChartInstanceRef.current
     if (!chart) {
+      console.log('[updateWeightChart] 创建新的图表实例')
       chart = echarts.init(weightChartRef.current)
       weightChartInstanceRef.current = chart
+    } else {
+      console.log('[updateWeightChart] 使用已有图表实例')
     }
 
     // 清空图表数据
@@ -209,6 +253,8 @@ const PortfolioAnalysis: React.FC = () => {
       name,
       value: (value * 100).toFixed(2)
     }))
+
+    console.log('[updateWeightChart] 图表数据:', data)
 
     const option = {
       title: {
@@ -257,6 +303,15 @@ const PortfolioAnalysis: React.FC = () => {
     }
 
     chart.setOption(option)
+    console.log('[updateWeightChart] 图表设置完成')
+
+    // 调整图表大小
+    setTimeout(() => {
+      if (chart) {
+        chart.resize()
+        console.log('[updateWeightChart] 图表resize完成')
+      }
+    }, 100)
   }
 
   // 更新收敛曲线
@@ -367,6 +422,168 @@ const PortfolioAnalysis: React.FC = () => {
     }
   ]
 
+  // 生成组合因子代码
+  const generateCompositeFactorCode = (result?: OptimizationResult) => {
+    const data = result || optimizationResult
+    if (!data || !data.weights) return ''
+
+    const weights = data.weights
+    const factorNames = Object.keys(weights)
+    const methodDisplay = {
+      equal_weight: '等权重',
+      ic_weight: 'IC加权',
+      ir_weight: 'IR加权',
+      max_sharpe: '最大夏普',
+      max_return: '最大收益',
+      min_variance: '最小方差'
+    }
+    const method = data.method || 'equal_weight'
+
+    // 从因子列表中获取因子代码
+    const getFactorCode = (factorName: string) => {
+      const factor = factors.find(f => f.name === factorName)
+      if (factor && factor.code) {
+        const code = factor.code.trim()
+
+        // 如果是def函数定义
+        if (code.startsWith('def')) {
+          try {
+            // 提取函数体
+            const lines = code.split('\n')
+
+            // 找到return语句，提取返回表达式
+            const returnLineIndex = lines.findIndex(line => line.trim().startsWith('return'))
+            if (returnLineIndex !== -1) {
+              let returnExpr = lines[returnLineIndex].trim().replace('return', '').trim()
+
+              // 为表达式添加df前缀，处理常见的列名
+              returnExpr = returnExpr
+                .replace(/\bopen\b/g, "df['open']")
+                .replace(/\bclose\b/g, "df['close']")
+                .replace(/\bhigh\b/g, "df['high']")
+                .replace(/\blow\b/g, "df['low']")
+                .replace(/\bvolume\b/g, "df['volume']")
+
+              return returnExpr
+            }
+          } catch (e) {
+            console.warn(`解析因子 ${factorName} 的代码失败:`, e)
+          }
+        }
+
+        // 如果不是def函数，或者是解析失败，直接使用原代码
+        // 为表达式添加df前缀
+        let processedCode = code
+          .replace(/\bopen\b/g, "df['open']")
+          .replace(/\bclose\b/g, "df['close']")
+          .replace(/\bhigh\b/g, "df['high']")
+          .replace(/\blow\b/g, "df['low']")
+          .replace(/\bvolume\b/g, "df['volume']")
+
+        return processedCode
+      }
+
+      // 如果没有找到因子代码，返回默认值
+      console.warn(`未找到因子 ${factorName} 的代码，使用默认值`)
+      return `df['${factorName}']`
+    }
+
+    let code = `# 组合因子 - ${methodDisplay[method] || method}优化
+# 生成时间: ${new Date().toLocaleString()}
+
+def calculate_factor(df):
+    """
+    组合因子 - 基于${factorNames.length}个因子的${methodDisplay[method] || method}组合
+    权重分配:
+${factorNames.map(name => `    ${name}: ${(weights[name] * 100).toFixed(2)}%`).join('\n')}
+    """
+    import pandas as pd
+    import numpy as np
+`
+
+    // 为每个因子生成计算代码
+    factorNames.forEach((name, index) => {
+      const weight = weights[name]
+      const factorCode = getFactorCode(name)
+
+      code += `
+    # 计算因子: ${name} (权重: ${(weight * 100).toFixed(2)}%)
+    try:
+        factor_${index + 1} = ${factorCode}
+        # 标准化
+        factor_${index + 1} = (factor_${index + 1} - factor_${index + 1}.mean()) / (factor_${index + 1}.std() + 1e-8)
+    except:
+        factor_${index + 1} = pd.Series(0, index=df.index)
+`
+    })
+
+    // 组合因子
+    code += `
+    # 加权组合
+    composite = `
+    const parts: string[] = []
+    factorNames.forEach((name, index) => {
+      const weight = weights[name]
+      parts.push(`${weight.toFixed(4)} * factor_${index + 1}`)
+    })
+    code += parts.join(' +\n        ')
+
+    code += `
+
+    return composite
+`
+
+    console.log('[generateCompositeFactorCode] 生成代码长度:', code.length)
+    return code
+  }
+
+  // 保存组合因子
+  const saveCompositeFactor = async () => {
+    if (!optimizationResult) {
+      message.warning('请先完成权重优化')
+      return
+    }
+
+    const methodDisplay = {
+      equal_weight: '等权重',
+      ic_weight: 'IC加权',
+      ir_weight: 'IR加权',
+      max_sharpe: '最大夏普',
+      max_return: '最大收益',
+      min_variance: '最小方差'
+    }
+
+    const method = optimizationResult.method || 'equal_weight'
+    const factorNames = Object.keys(optimizationResult.weights || {})
+
+    const factorData = {
+      name: `组合因子_${methodDisplay[method]}`,
+      category: '组合因子',
+      description: `基于${factorNames.length}个因子的${methodDisplay[method]}优化组合`,
+      code: compositeFactorCode,
+      formula_type: 'function'
+    }
+
+    try {
+      setSavingFactor(true)
+      const response = await axios.post('/api/factors', factorData)
+
+      if (response.data.success) {
+        message.success('组合因子保存成功')
+        // 重新加载因子列表
+        loadFactors()
+      } else {
+        message.error(response.data.message || '保存失败')
+      }
+    } catch (error: any) {
+      console.error('保存组合因子失败:', error)
+      const errorMsg = error.response?.data?.detail || error.response?.data?.message || error.message || '未知错误'
+      message.error('保存组合因子失败: ' + errorMsg)
+    } finally {
+      setSavingFactor(false)
+    }
+  }
+
   // ========== 综合得分相关函数 ==========
 
   // 计算综合得分
@@ -380,7 +597,7 @@ const PortfolioAnalysis: React.FC = () => {
 
     const [startDate, endDate] = values.dateRange
     const requestData = {
-      stock_code: values.stock_code || '000001.SZ', // 添加必需的 stock_code 字段
+      stock_code: values.stock_code || '000001', // 添加必需的 stock_code 字段
       factors: selectedFactors,
       start_date: startDate.format('YYYY-MM-DD'),
       end_date: endDate.format('YYYY-MM-DD')
@@ -388,6 +605,17 @@ const PortfolioAnalysis: React.FC = () => {
 
     try {
       setLoading(true)
+
+      // 清空结果前先销毁图表实例
+      if (compositeScoreChartInstanceRef.current) {
+        compositeScoreChartInstanceRef.current.dispose()
+        compositeScoreChartInstanceRef.current = null
+      }
+      if (compositeDistChartInstanceRef.current) {
+        compositeDistChartInstanceRef.current.dispose()
+        compositeDistChartInstanceRef.current = null
+      }
+
       setCompositeResult(null)
 
       const response = await axios.post('/api/portfolio/composite-score', requestData)
@@ -419,7 +647,7 @@ const PortfolioAnalysis: React.FC = () => {
         setTimeout(() => {
           updateCompositeScoreChart(data)
           updateCompositeDistChart(data.values || [])
-        }, 200)
+        }, 300)
       } else {
         message.error(response.data.message || '计算失败')
       }
@@ -609,7 +837,7 @@ const PortfolioAnalysis: React.FC = () => {
 
     const [startDate, endDate] = values.dateRange
     const requestData = {
-      stock_code: values.stock_code || '000001.SZ', // 添加必需的 stock_code 字段
+      stock_code: values.stock_code || '000001', // 添加必需的 stock_code 字段
       factors: selectedFactors,
       start_date: startDate.format('YYYY-MM-DD'),
       end_date: endDate.format('YYYY-MM-DD'),
@@ -618,6 +846,13 @@ const PortfolioAnalysis: React.FC = () => {
 
     try {
       setLoading(true)
+
+      // 清空结果前先销毁图表实例
+      if (compareChartInstanceRef.current) {
+        compareChartInstanceRef.current.dispose()
+        compareChartInstanceRef.current = null
+      }
+
       setCompareResult(null)
 
       const response = await axios.post('/api/portfolio/compare-methods', requestData)
@@ -629,7 +864,7 @@ const PortfolioAnalysis: React.FC = () => {
         // 延迟渲染图表
         setTimeout(() => {
           updateCompareChart(response.data.data.results || response.data.data)
-        }, 200)
+        }, 300)
       } else {
         message.error(response.data.message || '对比失败')
       }
@@ -928,10 +1163,10 @@ const PortfolioAnalysis: React.FC = () => {
                       <Form.Item
                         name="stock_code"
                         label="股票代码"
-                        initialValue="000001.SZ"
+                        initialValue="000001"
                         rules={[{ required: true, message: '请输入股票代码' }]}
                       >
-                        <Input placeholder="例如: 000001.SZ" />
+                        <Input placeholder="例如: 000001" />
                       </Form.Item>
 
                       <Form.Item noStyle shouldUpdate>
@@ -1139,6 +1374,50 @@ const PortfolioAnalysis: React.FC = () => {
                     {/* 优化结果 */}
                     {optimizationResult && (
                       <div className="optimization-result">
+                        {/* 组合因子代码 */}
+                        {compositeFactorCode && (
+                          <div style={{ marginBottom: 24 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                              <h4 className="result-title" style={{ margin: 0 }}><AimOutlined /> 组合因子代码</h4>
+                              <Button
+                                type="primary"
+                                icon={<RocketOutlined />}
+                                onClick={saveCompositeFactor}
+                                loading={savingFactor}
+                                size="small"
+                              >
+                                保存为自定义因子
+                              </Button>
+                            </div>
+                            <Card
+                              style={{
+                                background: 'rgba(248, 250, 252, 0.8)',
+                                border: '1px solid rgba(59, 130, 246, 0.1)',
+                                borderRadius: '8px'
+                              }}
+                            >
+                              <pre
+                                style={{
+                                  margin: 0,
+                                  padding: '16px',
+                                  background: 'transparent',
+                                  fontSize: '12px',
+                                  lineHeight: '1.6',
+                                  color: '#334155',
+                                  overflowX: 'auto',
+                                  whiteSpace: 'pre-wrap',
+                                  wordBreak: 'break-word'
+                                }}
+                              >
+                                {compositeFactorCode}
+                              </pre>
+                            </Card>
+                            <p style={{ marginTop: 12, fontSize: '13px', color: '#64748b' }}>
+                              <BulbOutlined style={{ marginRight: 4 }} />提示：点击"保存为自定义因子"按钮后，可以在因子管理页面查看和使用这个组合因子
+                            </p>
+                          </div>
+                        )}
+
                         {/* 性能指标 */}
                         <div className="metrics-section">
                           <Row gutter={16}>
@@ -1326,10 +1605,10 @@ const PortfolioAnalysis: React.FC = () => {
                       <Form.Item
                         name="stock_code"
                         label="股票代码"
-                        initialValue="000001.SZ"
+                        initialValue="000001"
                         rules={[{ required: true, message: '请输入股票代码' }]}
                       >
-                        <Input placeholder="例如: 000001.SZ" />
+                        <Input placeholder="例如: 000001" />
                       </Form.Item>
 
                       <Divider style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>
@@ -1532,10 +1811,10 @@ const PortfolioAnalysis: React.FC = () => {
                       <Form.Item
                         name="stock_code"
                         label="股票代码"
-                        initialValue="000001.SZ"
+                        initialValue="000001"
                         rules={[{ required: true, message: '请输入股票代码' }]}
                       >
-                        <Input placeholder="例如: 000001.SZ" />
+                        <Input placeholder="例如: 000001" />
                       </Form.Item>
 
                       <Divider style={{ fontSize: '13px', fontWeight: 600, color: '#0f172a' }}>
@@ -1610,7 +1889,6 @@ const PortfolioAnalysis: React.FC = () => {
                           <div
                             ref={compareChartRef}
                             className="chart-container"
-                            style={{ height: '400px' }}
                           ></div>
                         </div>
 

@@ -28,9 +28,25 @@ class FactorRepository:
         """根据ID获取因子"""
         return self.db.get(FactorModel, factor_id)
 
-    def get_by_name(self, name: str) -> Optional[FactorModel]:
-        """根据名称获取因子"""
-        return self.db.scalar(select(FactorModel).where(FactorModel.name == name))
+    def get_by_name(self, name: str, include_inactive: bool = False) -> Optional[FactorModel]:
+        """根据名称获取因子
+
+        Args:
+            name: 因子名称
+            include_inactive: 是否包含已删除的因子（is_active=0）
+        """
+        query = select(FactorModel).where(FactorModel.name == name)
+        if not include_inactive:
+            query = query.where(FactorModel.is_active == 1)
+        return self.db.scalar(query)
+
+    def get_active_by_name(self, name: str) -> Optional[FactorModel]:
+        """根据名称获取活跃因子（仅返回 is_active=1 的记录）"""
+        return self.db.scalar(
+            select(FactorModel)
+            .where(FactorModel.name == name)
+            .where(FactorModel.is_active == 1)
+        )
 
     def create(self, factor: FactorModel) -> FactorModel:
         """创建因子"""
@@ -46,8 +62,7 @@ class FactorRepository:
         return factor
 
     def delete(self, factor_id: int) -> bool:
-        """删除因子（使用软删除，仅限用户自定义因子）"""
-        from sqlalchemy import update
+        """删除因子（硬删除，从数据库中完全移除，仅限用户自定义因子）"""
 
         factor = self.get_by_id(factor_id)
         if not factor:
@@ -55,9 +70,8 @@ class FactorRepository:
         if factor.source == "preset":
             raise ValueError("预置因子不能删除")
 
-        # 使用 UPDATE 语句直接更新数据库，避免 ORM 缓存问题
-        stmt = update(FactorModel).where(FactorModel.id == factor_id).values(is_active=0)
-        self.db.execute(stmt)
+        # 硬删除：直接从数据库中移除记录
+        self.db.delete(factor)
         self.db.commit()
 
         return True

@@ -111,7 +111,7 @@ function App() {
               style={{
                 fontFamily: '"SF Mono", "Monaco", "Inconsolata", monospace',
                 fontSize: '18px',
-                fontWeight: 700,
+                fontWeight: 800,
                 letterSpacing: '2px',
                 color: '#1f2937',
                 lineHeight: '1.2'
@@ -124,7 +124,8 @@ function App() {
                 fontSize: '10px',
                 letterSpacing: '2px',
                 color: '#9ca3af',
-                lineHeight: '1.2'
+                lineHeight: '1.2',
+                fontWeight: 600
               }}
             >
               智能量化分析平台
@@ -146,7 +147,7 @@ function App() {
               border: 'none',
               fontFamily: '"SF Mono", "Monaco", monospace',
               fontSize: '13px',
-              fontWeight: 500,
+              fontWeight: 700,
               letterSpacing: '0.5px'
             }}
           />
@@ -165,7 +166,7 @@ function App() {
       {/* 移动端抽屉菜单 */}
       <Drawer
         title={
-          <span style={{ fontFamily: '"SF Mono", "Monaco", monospace', fontSize: '14px', fontWeight: 600, letterSpacing: '1.5px', color: '#64748b' }}>
+          <span style={{ fontFamily: '"SF Mono", "Monaco", monospace', fontSize: '14px', fontWeight: 700, letterSpacing: '1.5px', color: '#64748b' }}>
             导航菜单
           </span>
         }
@@ -182,7 +183,7 @@ function App() {
           selectedKeys={[getSelectedKey()]}
           items={menuItems}
           onClick={handleMenuClick}
-          style={{ background: 'transparent' }}
+          style={{ background: 'transparent', fontWeight: 700 }}
         />
       </Drawer>
 
