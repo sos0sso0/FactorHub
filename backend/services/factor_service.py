@@ -898,14 +898,37 @@ class FactorService:
         db.close()
         return [f.to_dict() for f in factors]
 
-    def get_factor_stats(self) -> Dict[str, int]:
+    def get_factor_stats(self) -> Dict:
         """获取因子统计信息"""
         db = get_db_session()
         repo = FactorRepository(db)
+
+        # 获取缓存统计
+        from backend.services.cache_service import cache_service
+        cache_stats = cache_service.get_stats()
+        stock_cache_count = cache_stats.get("total_count", 0)
+
+        # 检查AKShare健康状态
+        akshare_healthy = True
+        try:
+            import akshare as ak
+            # 使用用户指定的接口验证连接
+            stock_zh_a_daily_qfq_df = ak.stock_zh_a_daily(
+                symbol="sz000001",
+                start_date="20230903",
+                end_date="20231027",
+                adjust="qfq"
+            )
+        except Exception:
+            akshare_healthy = False
+
         stats = {
             "preset_count": repo.get_preset_count(),
             "user_count": repo.get_user_count(),
             "total_count": repo.get_preset_count() + repo.get_user_count(),
+            "strategy_count": 0,  # 暂时为0，后续可以根据实际情况添加
+            "stock_cache_count": stock_cache_count,
+            "akshare_healthy": akshare_healthy,
         }
         db.close()
         return stats
