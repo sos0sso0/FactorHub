@@ -216,7 +216,8 @@
       "Bash(uv run python scripts/test_actual_signals.py)",
       "Bash(npx tsc --noEmit --skipLibCheck)",
       "Bash(pnpm type-check)",
-      "Bash(uv run python scripts/test_calculation_consistency.py)"
+      "Bash(uv run python scripts/test_calculation_consistency.py)",
+      "Bash(ls -la README*)"
     ],
     "deny": [],
     "ask": []

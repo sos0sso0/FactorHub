@@ -1,545 +1,233 @@
-# FactorFlow - 股票因子分析系统
+# FactorHub
 
-基于 **React + Ant Design 前端** + **FastAPI 后端** 的现代化量化因子分析平台，提供因子管理、计算、IC/IR分析、回测评估和SHAP特征解释功能。
+**FactorHub** is an open-source modern quantitative factor analysis platform designed specifically for the Chinese A-share market.
 
-## 项目特色
+> FactorHub = Factor + Hub
 
-- **现代化技术栈**: React 19 + TypeScript + Ant Design + FastAPI
-- **完整的因子分析流程**: 从因子管理、因子挖掘到回测评估的完整闭环
-- **强大的可视化**: ECharts 图表库提供丰富的数据分析可视化
-- **企业级架构**: 前后端分离，RESTful API 设计，支持高并发
+A full-stack quantitative investment research system integrating factor management, analysis, mining, portfolio optimization, and strategy backtesting.
 
 ---
 
-## 系统架构
+## Language Options
 
-### 总体架构图
-
-```text
-┌─────────────────────────────────────────────────────────────┐
-│                        前端层                            │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────┐ │
-│  │ React 19     │  │ Ant Design 6 │  │ ECharts 6│ │
-│  │ TypeScript   │  │ UI组件库     │  │ 图表库   │ │
-│  └──────────────┘  └──────────────┘  └──────────┘ │
-└─────────────────────────────────────────────────────────────┘
-                          ↓ HTTP/REST API
-┌─────────────────────────────────────────────────────────────┐
-│                        后端层 (FastAPI)                      │
-│  ┌──────────────────────────────────────────────────────┐ │
-│  │         API 路由层 (routers/)                      │ │
-│  │  - 因子管理API  - 回测API  - 组合分析API          │ │
-│  └──────────────────────────────────────────────────────┘ │
-│  ┌──────────────────────────────────────────────────────┐ │
-│  │         业务逻辑层 (services/)                     │ │
-│  │  - 因子服务  - 分析服务  - 回测服务              │ │
-│  │  - 缓存服务  - 可视化服务                        │ │
-│  └──────────────────────────────────────────────────────┘ │
-│  ┌──────────────────────────────────────────────────────┐ │
-│  │         数据访问层 (repositories/)                 │ │
-│  │  - 因子仓库  - 缓存仓库                            │ │
-│  └──────────────────────────────────────────────────────┘ │
-└─────────────────────────────────────────────────────────────┘
-                          ↓
-┌─────────────────────────────────────────────────────────────┐
-│                        数据层                              │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────┐ │
-│  │ SQLite DB    │  │  akshare    │  │ 缓存文件  │ │
-│  │ (因子/回测) │  │ (股票数据)   │  │ (akshare)│ │
-│  └──────────────┘  └──────────────┘  └──────────┘ │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### 分层架构说明
-
-- **前端层**: 基于 React 19 + TypeScript + Ant Design 的单页应用，负责用户交互和数据可视化
-- **API层**: FastAPI 提供的 RESTful 接口，处理 HTTP 请求和响应
-- **业务层**: 核心业务逻辑实现，包括因子计算、分析、回测等服务
-- **数据层**: SQLite 数据库存储因子和回测数据，akshare 提供原始股票数据
+- 🇨🇳 **中文 (Chinese)** - [README_ZH.md](README_ZH.md)
+- 🇯🇵 **日本語 (Japanese)** - [README_JP.md](README_JP.md)
 
 ---
 
-## 数据流
+## Core Value Proposition
 
-### 因子分析数据流
+| Value Pillar | Description |
+|--------------|-------------|
+| 🎯 **Complete Factor Lifecycle Management** | Full support from factor creation, validation, analysis to deployment |
+| 🧪 **Scientific Factor Evaluation System** | Professional indicators including IC/IR analysis, monotonicity test, turnover analysis |
+| 🧬 **Intelligent Factor Mining** | Genetic algorithm-based automated factor mining to discover alpha signals |
+| 📊 **Professional Backtesting Engine** | Support for multi-factor combination, strategy comparison, and performance attribution analysis |
 
-```text
-用户输入（股票代码、因子、时间区间）
-        ↓
-    [前端] 发送 API 请求
-        ↓
-    [API层] 验证请求参数
-        ↓
-    [数据服务] 获取股票数据
-    ├─→ 检查缓存（akshare缓存）
-    ├─→ 命中 → 直接返回缓存数据
-    └─→ 未命中 → 调用 akshare API 获取 → 保存缓存
-        ↓
-    [因子服务] 计算因子值
-    ├─→ 滚动窗口标准化
-    ├─→ 添加时间特征
-    └─→ 返回因子数据
-        ↓
-    [分析服务] 执行 IC/IR 分析
-    ├─→ 计算时序 IC
-    ├─→ 计算横截面 IC
-    └─→ 计算 IR
-        ↓
-    [SHAP分析服务] 特征重要性分析
-        ↓
-    [可视化服务] 生成图表数据
-        ↓
-    [API层] 返回分析结果
-        ↓
-    [前端] 渲染 ECharts 图表
+---
+
+## Core Features
+
+### 1. Factor Management
+- ✅ **Custom Factor Definition** - Supports Tongda Xinhua (MyLanguage) syntax and TALib functions
+- ✅ **Formula Validation** - Real-time syntax checking and logical verification
+- ✅ **Version Control** - Factor modification history and version rollback
+- ✅ **Pre-built Factor Library** - Built-in common technical factors (MA, RSI, MACD, Bollinger Bands, etc.)
+
+### 2. Factor Analysis
+- ✅ **IC/IR Analysis** - Information Coefficient and Information Ratio calculation (supports 1-day, 5-day, 10-day prediction cycles)
+- ✅ **Factor Exposure Analysis** - Analyze stock exposure distribution on factors
+- ✅ **Factor Effectiveness Testing** - Multi-dimensional assessment of factor predictive power
+- ✅ **Factor Attribution Analysis** - Decompose factor contribution to returns
+- ✅ **Dynamic Monitoring** - Factor performance tracking across time series dimensions
+
+### 3. Factor Mining
+- ✅ **Genetic Algorithm Mining** - DEAP-based evolutionary algorithm for automatic factor search
+- ✅ **Multi-objective Optimization** - Simultaneously optimize IC, IR, monotonicity, and other objectives
+- ✅ **Factor Generation** - Supports basic operators, function calls, and time window operations
+- ✅ **Parallel Computing** - Parallel population evaluation for acceleration
+
+### 4. Portfolio Analysis
+- ✅ **Multi-factor Portfolio** - Supports equal weight, market cap weighting, IC_IR maximization, etc.
+- ✅ **Risk Modeling** - Factor neutralization processing
+- ✅ **Optimization Configuration** - Factor weight optimization based on historical performance
+- ✅ **Portfolio Performance** - Annual return, Sharpe ratio, maximum drawdown, and other metrics
+
+### 5. Strategy Backtesting
+- ✅ **Single Factor Backtesting** - Factor quantile-based stock selection backtesting
+- ✅ **Multi-factor Strategies** - Composite factor signal generation
+- ✅ **Strategy Comparison** - Multi-strategy parallel backtesting and comparison analysis
+- ✅ **Performance Metrics** - Complete metric system including returns, risk, and turnover
+- ✅ **Visualization Charts** - Equity curves, drawdowns, factor performance charts, etc.
+
+---
+
+## Technical Architecture
+
+### Tech Stack
+
+**Backend:**
+- FastAPI 0.135+ - High-performance web framework
+- SQLAlchemy 2.0 - ORM database operations
+- SQLite - Lightweight data storage
+- Pandas 2.0+ / NumPy - Data processing
+- TA-Lib - Technical analysis library
+- VectorBT 0.25+ - Backtesting engine
+- DEAP 1.3+ - Genetic algorithm framework
+- XGBoost 2.0+ - Machine learning models
+- SHAP 0.42+ - Model interpretation
+- akshare 1.12+ - Chinese A-share data source
+
+**Frontend:**
+- React 19 - UI framework
+- TypeScript - Type safety
+- Ant Design 6 - UI component library
+- ECharts 6 - Data visualization
+- React Router 7 - Routing management
+- Axios - HTTP client
+- Vite - Build tool
+
+---
+
+## Project Structure
+
 ```
-
-### 回测数据流
-
-```text
-用户配置（策略、参数、时间区间）
-        ↓
-    [前端] 发送回测请求
-        ↓
-    [回测服务] 初始化策略
-        ↓
-    [数据服务] 获取历史数据
-        ↓
-    [策略执行] 按时间周期执行
-    ├─→ 计算信号
-    ├─→ 生成订单
-    ├─→ 更新持仓
-    └─→ 记录交易
-        ↓
-    [绩效分析] 计算指标
-    ├─→ 收益率
-    ├─→ 最大回撤
-    ├─→ 夏普比率
-    └─→ 其他指标
-        ↓
-    [风险分析] 计算风险指标
-        ↓
-    [可视化服务] 生成回测图表
-        ↓
-    [API层] 返回回测结果
-        ↓
-    [前端] 展示回测报告
+FactorHub/
+├── backend/                    # Backend code
+│   ├── api/                   # API layer
+│   │   ├── main.py           # FastAPI main application
+│   │   └── routers/          # API routers
+│   │       ├── factors.py    # Factor management interface
+│   │       ├── analysis.py   # Factor analysis interface
+│   │       ├── mining.py     # Factor mining interface
+│   │       ├── portfolio.py  # Portfolio analysis interface
+│   │       ├── backtest.py   # Strategy backtesting interface
+│   │       └── data.py       # Data management interface
+│   ├── services/              # Business logic layer
+│   ├── strategies/            # Strategy implementation
+│   ├── repositories/          # Data access layer
+│   ├── models/                # ORM models
+│   └── core/                  # Core configuration
+├── frontend/                   # Frontend code
+│   └── react-antd/            # React + Ant Design version
+├── config/                     # Configuration files
+├── data/                       # Data directory
+├── docs/                       # Documentation
+├── tests/                      # Tests
+├── scripts/                    # Utility scripts
+└── README.md
 ```
 
 ---
 
-## 业务架构
+## Quick Start
 
-### 核心业务模块
+### Prerequisites
 
-```text
-FactorFlow 业务架构
-│
-├── 因子管理模块
-│   ├── 预置因子库（30+ 技术因子）
-│   ├── 自定义因子（表达式/函数）
-│   ├── 因子验证
-│   └── 因子版本管理
-│
-├── 因子分析模块
-│   ├── 单股票分析
-│   ├── 股票池分析
-│   ├── IC/IR 分析
-│   ├── SHAP 特征重要性
-│   └── 报告导出
-│
-├── 回测系统模块
-│   ├── 策略库（等权重/市值加权/动量/均值回归）
-│   ├── 策略回测
-│   ├── 策略对比
-│   ├── 持仓分析
-│   └── 风险分析
-│
-├── 因子工程模块
-│   ├── 因子生成器
-│   ├── 因子验证
-│   ├── 遗传算法挖掘
-│   └── 因子中性化
-│
-├── 组合分析模块
-│   ├── 多因子组合构建
-│   ├── 因子权重优化
-│   ├── 组合收益归因
-│   └── 风险指标计算
-│
-└── 数据服务模块
-    ├── akshare 数据获取
-    ├── 缓存管理
-    ├── 数据预处理
-    └── 数据标准化
-```
+- **Python 3.11+**
+- **Node.js 18+**
+- **pnpm** (package manager)
+- **TA-Lib** (technical analysis library)
 
----
-
-## 专业性
-
-### 学术基础
-
-- **IC/IR 分析框架**：基于信息系数（Information Coefficient）和信息比率（Information Ratio）的经典因子评估体系
-- **XGBoost + SHAP**：结合梯度提升树和 SHAP 特征解释，提供可解释的机器学习分析
-- **滚动窗口标准化**：252 交易日滚动窗口的标准化方法，适应市场变化
-- **风险指标体系**：夏普比率、最大回撤、Calmar 比率、VaR 等完整风险评估
-
-### 技术实现亮点
-
-- **前后端分离架构**：React + FastAPI 的现代化技术栈，支持高并发和可扩展性
-- **智能缓存系统**：akshare 数据智能缓存，减少 API 调用，提升性能
-- **企业级代码质量**：完整的测试覆盖（80+ 核心测试），类型安全的 TypeScript 代码
-- **丰富的可视化**：ECharts 6 提供专业级的数据可视化图表
-
----
-
-## 可用场景
-
-### 1. 量化研究机构
-
-- 因子库管理和评估
-- 多因子组合研究
-- 策略回测验证
-- 研究报告生成
-
-### 2. 私募基金公司
-
-- 因子挖掘和验证
-- 投资组合构建
-- 风险管理
-- 绩效归因分析
-
-### 3. 个人投资者学习
-
-- 量化投资入门学习
-- 因子投资策略实践
-- 回测验证投资想法
-- 学习量化分析方法
-
-### 4. 金融教育机构
-
-- 量化教学实验平台
-- 学生作业和项目
-- 研究项目支撑
-- 教学案例开发
-
----
-
-## 适合场景
-
-### ✅ 适合使用的场景
-
-1. **股票市场因子投资研究**
-   - 已有投资想法需要回测验证
-   - 需要系统评估因子有效性
-   - 多因子组合研究和优化
-
-2. **量化投资策略开发**
-   - 技术因子策略开发
-   - 策略回测和优化
-   - 风险管理和绩效分析
-
-3. **金融数据分析**
-   - 股票数据分析
-   - 风险指标计算
-   - 可视化分析报告
-
-4. **教学和研究**
-   - 量化投资教学
-   - 金融工程研究
-   - 学生实验项目
-
-### ⚠️ 不适合的场景
-
-1. **高频交易**
-   - 系统设计为日线级别分析
-   - 不支持毫秒级交易
-   - 不适合高频策略
-
-2. **实时交易系统**
-   - 当前版本为研究分析平台
-   - 不包含实盘交易接口
-   - 建议独立开发交易系统
-
-3. **境外市场**
-   - 当前数据源主要针对中国A股
-   - 暂不支持美股、港股等境外市场
-   - 可扩展支持（需修改数据源）
-
----
-
-## 功能特点
-
-### 📊 因子管理
-
-- 预置 **30+常用技术因子**（价格、动量、波动率、成交量等）
-- 支持用户**自定义因子**（表达式和函数两种形式）
-- **因子代码验证和测试**
-- **因子版本控制和历史回滚**
-- 现代化的因子详情页面，支持图表分析和量化评估
-
-### 📈 因子分析
-
-- 支持**单股票和股票池分析**
-- **自动滚动窗口标准化**
-- **IC/IR 统计分析**（时序IC和横截面IC）
-- **SHAP 特征重要性分析**
-- **可视化图表展示**（热力图、雷达图、网络图等）
-- **Markdown 报告导出**
-
-### 🔄 回测系统
-
-- **策略回测**：
-  - 等权重策略
-  - 市值加权策略（已完善真实实现）
-  - 动量策略
-  - 均值回归策略
-- **策略对比**：多策略性能对比和排名
-- **持仓分析**：持仓统计、集中度分析、换手率分析
-- **风险分析**：行业暴露、因子暴露、风险指标计算
-- **导出功能**：回测结果和策略对比导出到Excel
-
-### 🧬 因子工程
-
-- **因子生成器**：
-  - 二元运算组合
-  - 统计函数组合
-  - 技术指标组合
-  - 混合因子生成
-- **因子验证**：IC、IR、换手率、稳定性、相关性综合评估
-- **遗传算法挖掘**：自动发现最优因子组合（需安装DEAP）
-- **因子中性化**：市值中性化和行业中性化
-
-### 📋 组合分析
-
-- **多因子组合构建**
-- **因子权重优化**（等权重、IC加权、风险平价）
-- **组合收益归因分析**
-- **风险指标计算**：波动率、最大回撤、VaR、Calmar比率
-
-### 🎯 增强分析
-
-- **IC显著性检验**：统计显著性测试
-- **因子稳定性分析**：分布稳定性和变异系数
-- **因子摘要**：质量评分和分级
-- **组合分析**：多因子综合评分和排名
-
----
-
-## 技术栈
-
-### 前端技术栈
-
-- **React 19** + **TypeScript** - 现代化前端框架
-- **Ant Design 6** - 企业级 UI 组件库
-- **ECharts 6** - 强大的数据可视化库
-- **Vite 7** - 极速前端构建工具
-- **React Router** - 客户端路由管理
-- **Axios** - HTTP 客户端
-
-### 后端技术栈
-
-- **FastAPI 0.135+** - 高性能 Python Web 框架
-- **SQLAlchemy 2.0+** - ORM 数据库框架
-- **Pydantic 2.5+** - 数据验证和设置管理
-
-### 数据和计算
-
-- **数据源**: akshare（中国A股数据，已迁移到新API）
-- **数据库**: SQLite
-- **计算**: numpy, pandas, TA-Lib
-- **分析**: xgboost, scikit-learn, shap
-- **回测**: vectorbt（可选）、自定义回测框架
-- **图表**: plotly（后端）、ECharts（前端）
-
-### 开发工具
-
-- **包管理**: uv（Python）、npm（JavaScript）
-- **测试**: pytest（142个测试用例，80+个核心测试通过）
-- **代码规范**: ESLint、TypeScript、black
-
----
-
-## 快速开始
-
-### 1. 安装依赖
-
-#### 后端依赖
+### Installation
 
 ```bash
-# 克隆项目
-git clone <repository-url>
-cd FactorFlow
+# Install pnpm
+npm install -g pnpm
 
-# 使用 uv 安装 Python 依赖（推荐）
+# Install Python dependencies (using uv)
 uv sync
 
-# 或者使用 pip 安装
-pip install -r requirements.txt
-```
-
-#### 前端依赖（React + Ant Design）
-
-```bash
+# Install frontend dependencies
 cd frontend/react-antd
-npm install
+pnpm install
 ```
 
-### 2. 安装 TA-Lib
-
-**Windows:**
+### One-click Startup
 
 ```bash
-# 从以下地址下载对应Python版本的whl文件
-# https://www.lfd.uci.edu/~gohlke/pythonlibs/#ta-lib
-pip install TA_Lib‑0.4.28‑cp311‑cp311‑win_amd64.whl
+python start_all.py
 ```
 
-**Linux:**
+This script will automatically:
+1. Check environment prerequisites
+2. Install dependencies if needed
+3. Start backend service (http://localhost:8000)
+4. Start frontend development server (http://localhost:5173)
+5. Open browser automatically
+
+### Manual Startup
+
+#### Backend
 
 ```bash
-wget http://prdownloads.sourceforge.net/ta-lib/ta-lib-0.4.0-src.tar.gz
-tar -xzf ta-lib-0.4.0-src.tar.gz
-cd ta-lib/
-./configure --prefix=/usr
-make
-make install
-cd ..
-pip install TA-Lib
-```
-
-**macOS:**
-
-```bash
-brew install ta-lib
-pip install TA-Lib
-```
-
-### 3. 启动应用
-
-#### 方式一：同时启动前后端（推荐）
-
-```bash
-uv run python start_all.py
-```
-
-#### 方式二：分别启动
-
-```bash
-# 1. 在终端1启动后端 API
 uv run python start_api.py
+# API available at http://localhost:8000
+# API docs at http://localhost:8000/docs
+```
 
-# 2. 在终端2启动 React 前端开发服务器
+#### Frontend
+
+```bash
 cd frontend/react-antd
-npm run dev
-```
-
-### 4. 访问应用
-
-- **前端应用**: <http://localhost:3000>（React开发服务器）
-- **API文档**: <http://localhost:8000/docs>（FastAPI Swagger文档）
-- **备用前端**: <http://localhost:8080>（传统HTML版本）
-
----
-
-## 项目结构
-
-```text
-FactorFlow/
-├── backend/                 # 后端服务
-│   ├── api/                 # API接口层
-│   │   ├── main.py          # FastAPI入口
-│   │   └── routers/         # API路由
-│   ├── core/                # 核心配置和数据库
-│   │   ├── settings.py      # 配置管理
-│   │   └── database.py      # 数据库连接
-│   ├── models/              # 数据模型
-│   │   ├── factor.py        # 因子模型
-│   │   ├── backtest.py      # 回测模型
-│   │   └── cache_metadata.py # 缓存元数据
-│   ├── repositories/        # 数据访问层
-│   │   ├── factor_repository.py
-│   │   └── cache_repository.py
-│   ├── services/            # 业务逻辑层
-│   │   ├── data_service.py  # 数据服务（akshare）
-│   │   ├── factor_service.py # 因子计算
-│   │   ├── analysis_service.py # IC/IR分析
-│   │   ├── backtest_service.py # 回测服务
-│   │   ├── cache_service.py # 缓存服务
-│   │   ├── strategies/      # 策略实现
-│   │   │   ├── base_strategy.py
-│   │   │   ├── equal_weight_strategy.py
-│   │   │   ├── market_cap_strategy.py
-│   │   │   ├── momentum_strategy.py
-│   │   │   └── mean_reversion_strategy.py
-│   │   ├── factor_generator_service.py # 因子生成器
-│   │   ├── factor_validation_service.py # 因子验证
-│   │   ├── genetic_factor_mining_service.py # 遗传算法挖掘
-│   │   ├── factor_neutralization_service.py # 因子中性化
-│   │   ├── portfolio_analysis_service.py # 组合分析
-│   │   ├── strategy_comparison_service.py # 策略对比
-│   │   ├── position_analysis_service.py # 持仓分析
-│   │   ├── export_service.py # 导出服务
-│   │   └── visualization_service.py # 可视化服务
-│   └── strategies/          # 回测策略
-├── frontend/                # 前端应用
-│   ├── react-antd/         # React + Ant Design 版本（推荐）
-│   │   ├── src/
-│   │   │   ├── pages/      # 页面组件
-│   │   │   ├── components/ # 通用组件
-│   │   │   ├── api/        # API接口
-│   │   │   └── utils/      # 工具函数
-│   │   ├── package.json    # 前端依赖
-│   │   └── vite.config.ts  # Vite配置
-│   ├── vite-app/           # Vue 3 + Vite 版本
-│   └── web/                # 传统 HTML 版本
-├── config/                  # 配置文件
-│   └── factors.yaml         # 预置因子定义
-├── data/                    # 数据目录
-│   ├── cache/               # 数据缓存
-│   │   └── akshare/         # akshare缓存
-│   ├── db/                  # SQLite数据库
-│   └── reports/             # 导出的报告
-├── docs/                    # 文档目录
-├── scripts/                 # 脚本文件
-├── pyproject.toml           # Python项目配置
-├── README.md                # 项目文档
-└── LICENSE                  # 许可证
+pnpm dev
+# Frontend available at http://localhost:5173
 ```
 
 ---
 
-## 开源协议
+## License
 
-本项目采用**双重许可协议**：
+### Dual License
 
-### 个人学习许可证
+**Personal Use:**
 
-- **适用范围**：个人学习、研究、非商业用途
-- **权利**：
-  - 免费使用
-  - 自由修改
-  - 学习研究
-- **限制**：
-  - 不得用于商业用途
-  - 不得用于盈利目的
-  - 需保留版权声明
+This project is licensed under the **GNU Affero General Public License v3.0 (AGPL-3.0)**.
 
-### 商业授权许可证
+You are free to:
+- ✅ Use this software for personal learning, research, and non-commercial purposes
+- ✅ Modify and improve this software
+- ✅ Distribute modified versions (must retain the same license)
+- ✅ Reference this project in your own projects
 
-- **适用范围**：企业、机构、商业用途
-- **获取方式**：请联系项目维护者获取商业授权
-- **权利**：
-  - 商业使用
-  - 技术支持
-  - 定制开发
-  - 持续更新
+**Commercial Use:**
 
-### 免责声明
+⚠️ **Important Note:** Any commercial use (including but not limited to:
+- Integrating this project into commercial products
+- Using this project to provide paid services
+- Using this project for production quantitative trading
+- Using this project internally within companies for investment research)
 
-本项目仅供学习和研究使用，不构成任何投资建议。使用本项目进行投资所产生的任何损失，项目开发者不承担任何责任。
+**Requires separate commercial authorization.**
 
 ---
 
-**FactorFlow** - 让量化因子分析更简单！
+### Contact for Commercial Authorization
+
+**Email:** yl_zhangqiang@foxmail.com
+
+When contacting, please specify:
+1. Your company/organization name
+2. Your usage scenario and requirements
+3. Expected scale of use
+4. Contact information
+
+We will respond within 3 business days.
+
+---
+
+## Contact
+
+**Project Maintainer:** FactorHub Team
+
+**Email:** yl_zhangqiang@foxmail.com
+
+**Feedback Welcome:**
+- Bug reports
+- Feature suggestions
+- Technical discussions
+- Cooperation inquiries
+
+---
+
+**Last Updated:** 2026-03-14
